@@ -182,6 +182,29 @@ class SwitchHandoverParser:
             results.append(entry)
             
         return results
+    
+    def extract_cdp_neighbor_ips(self, raw_text):
+        """Scans for 'show cdp neighbors detail' and returns a dictionary of IPs"""
+        neighbor_map = {}
+        
+        # Split the text into chunks based on the CDP separator line
+        cdp_blocks = re.split(r'-------------------------', raw_text)
+        
+        for block in cdp_blocks:
+            # 1. Grab the neighbor's hostname
+            device_match = re.search(r'Device ID:\s*(\S+)', block)
+            # 2. Grab the neighbor's IP
+            ip_match = re.search(r'IP address:\s*([\d\.]+)', block)
+            
+            if device_match and ip_match:
+                # Strip domain names if present (e.g., SW1.cisco.com -> SW1)
+                raw_hostname = device_match.group(1).split('.')[0]
+                ip_address = ip_match.group(1)
+                
+                # Add to our dictionary
+                neighbor_map[raw_hostname] = ip_address
+                
+        return neighbor_map
     #--- Create the Port Mapping ---
     def parse_port_mapping(self):
         ports = {}
@@ -230,6 +253,8 @@ class SwitchHandoverParser:
             k = self._normalize_intf(m.group(1))
             if k in ports: ports[k]["State"] = m.group(2)
         
+        cdp_ip_dict = self.extract_cdp_neighbor_ips(self.log_text)
+        
         lines = self.log_text.split('\n')
         in_cdp = False; prev = ""
         # Added 'Gi' and 'Tw' and other abrivations for extra safety with varying Cisco output
@@ -243,8 +268,15 @@ class SwitchHandoverParser:
                     key = self._normalize_intf(m[0].group(0))
                     if key in ports:
                         raw_h = line[:m[0].start()].strip()
-                        ports[key]["Neighbour Hostname"] = (raw_h if raw_h else prev).split('.')[0]
+                        neigh_host = (raw_h if raw_h else prev).split('.')[0]
+                        
+                        ports[key]["Neighbour Hostname"] = neigh_host
                         ports[key]["Neighbour Port No."] = m[-1].group(0).strip()
+                        
+                        # 2. NEW: Map the IP directly from the detail block if we found it
+                        if neigh_host in cdp_ip_dict:
+                            ports[key]["Neighbour Device IP"] = cdp_ip_dict[neigh_host]
+                            
             prev = line.strip()
             
         return [p for p in ports.values() if p["Neighbour Hostname"] != "-"]
