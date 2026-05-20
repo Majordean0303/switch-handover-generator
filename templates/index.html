@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <title>Network Handover Generator</title>
+    <meta name="author" content="Yash Nalawde">
+    <meta name="generator" content="Switch Handover Gen v1.0">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        // Subtle IP trace in the developer console
+        setTimeout(() => console.log("%cArchitecture by Yash Nalawde", "color:rgba(0,0,0,0.01); font-size:10px;"), 100);
+        
+        tailwind.config = { darkMode: 'class' }
+        function toggleDarkMode() {
+            document.documentElement.classList.toggle('dark');
+        }
+    </script>
+</head>
+<body class="bg-gray-100 dark:bg-gray-900 min-h-screen font-sans text-gray-800 dark:text-gray-200 p-8 transition-colors duration-200">
+
+    <div class="max-w-screen-2xl mx-auto">
+
+        <div class="bg-blue-800 dark:bg-blue-900 rounded-t-xl px-8 py-6 shadow-md flex justify-between items-center">
+            <h1 class="text-3xl font-bold text-white">Switch Handover Generator</h1>
+            <button onclick="toggleDarkMode()" class="text-blue-200 hover:text-white bg-blue-700 dark:bg-blue-800 hover:bg-blue-600 dark:hover:bg-blue-700 px-4 py-2 rounded-lg transition shadow">
+                🌓 Toggle Theme
+            </button>
+        </div>
+
+        <div class="bg-white dark:bg-gray-800 rounded-b-xl shadow-md p-8 transition-colors duration-200 border border-t-0 border-gray-200 dark:border-gray-700">
+
+            {% if error %}
+            <div class="bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 p-4 rounded mb-6 font-semibold border border-red-200 dark:border-red-800">{{ error }}</div>
+            {% endif %}
+
+            {% if not switches %}
+            <form action="/generate" method="POST" enctype="multipart/form-data" class="max-w-2xl mx-auto py-8">
+                <div class="grid grid-cols-2 gap-4 mb-4">
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Site Location</label>
+                        <input type="text" name="location" placeholder="e.g., Mumbai" required
+                            class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Location Type</label>
+                        <select name="location_type"
+                            class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
+                            <option value="Branch">Branch</option>
+                            <option value="DC">DC</option>
+                            <option value="DR">DR</option>
+                            <option value="Vendor">Vendor</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="mb-6">
+                    <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Management VLAN</label>
+                    <div class="flex items-center gap-3">
+                        <span class="text-gray-500 dark:text-gray-400 font-mono text-sm">Vlan</span>
+                        <input type="number" name="mgmt_vlan" min="1" max="4094" placeholder="e.g., 10"
+                            class="w-40 px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
+                    </div>
+                </div>
+                <div class="mb-6 bg-blue-50 dark:bg-blue-900/20 border-l-4 border-blue-500 p-4 rounded-r-lg">
+                    <div class="flex items-start">
+                        <div class="flex-shrink-0">
+                            <svg class="h-5 w-5 text-blue-600 dark:text-blue-400" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+                            </svg>
+                        </div>
+                        <div class="ml-3">
+                            <h3 class="text-sm font-bold text-blue-800 dark:text-blue-300">Required CLI Commands</h3>
+                            <div class="mt-2 text-sm text-blue-700 dark:text-blue-200">
+                                <p>For a complete handover matrix, ensure your uploaded PuTTY/SecureCRT logs include:</p>
+                                <code class="block mt-2 bg-white dark:bg-gray-800 px-3 py-2 rounded border border-blue-200 dark:border-blue-800 font-mono text-xs">
+                                    terminal length 0<br>
+                                    show running-config<br>
+                                    show version<br>
+                                    show cdp neighbors<br>
+                                    show ip int bri
+                                </code>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Upload Switch Configurations</label>
+                <div id="drop-zone" class="relative border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl p-8 text-center transition-all duration-300 bg-gray-50 dark:bg-gray-800/50 hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:border-blue-500 dark:hover:border-blue-500">
+                    <svg class="w-10 h-10 mx-auto text-gray-400 dark:text-gray-500 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
+                    <p class="text-sm text-gray-600 dark:text-gray-400">Drag & drop files here or <span class="text-blue-600 font-semibold cursor-pointer">browse</span></p>
+                    <input type="file" name="config_files" multiple accept=".txt,.log" id="file-input" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" required>
+                </div>
+                <div id="file-preview" class="mt-4 space-y-2 max-h-40 overflow-y-auto"></div>
+
+                <button type="submit" class="mt-8 w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-lg shadow-lg transition">
+                    Analyze & Generate
+                </button>
+            </form>
+
+            <script>
+                const fileInput = document.getElementById('file-input');
+                const preview = document.getElementById('file-preview');
+                fileInput.addEventListener('change', e => {
+                    preview.innerHTML = '';
+                    Array.from(fileInput.files).forEach(file => {
+                        const div = document.createElement('div');
+                        div.className = "flex items-center text-xs p-2 bg-white dark:bg-gray-700 border dark:border-gray-600 rounded";
+                        div.innerHTML = `<span class="truncate">📄 ${file.name}</span>`;
+                        preview.appendChild(div);
+                    });
+                });
+            </script>
+            {% endif %}
+
+            {% if switches %}
+            <div class="flex justify-between items-end mb-6">
+                <div>
+                    <h2 class="text-2xl font-bold text-gray-800 dark:text-white">Analysis Complete</h2>
+                    <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Review the data below and download your preferred Excel sheet.</p>
+                </div>
+                <a href="/" class="text-blue-600 dark:text-blue-400 hover:underline font-semibold">&larr; Upload More</a>
+            </div>
+
+            <form action="/download" method="POST" class="bg-blue-50 dark:bg-gray-700/50 p-4 rounded-lg border border-blue-100 dark:border-gray-600 flex gap-4 mb-8 justify-center">
+                <input type="hidden" name="switches_data" value="{{ switches_json }}">
+                <input type="hidden" name="ports_data" value="{{ ports_json }}">
+                <button type="submit" name="export_type" value="switches" class="bg-white dark:bg-gray-800 text-blue-700 dark:text-blue-400 border border-blue-300 dark:border-gray-500 font-bold py-2 px-6 rounded shadow hover:bg-blue-100 transition">⬇️ Download Switch Details</button>
+                <button type="submit" name="export_type" value="ports" class="bg-white dark:bg-gray-800 text-blue-700 dark:text-blue-400 border border-blue-300 dark:border-gray-500 font-bold py-2 px-6 rounded shadow hover:bg-blue-100 transition">⬇️ Download Port Mappings</button>
+                <button type="submit" name="export_type" value="both" class="bg-blue-600 text-white font-bold py-2 px-6 rounded shadow hover:bg-blue-700 transition">⬇️ Download Complete Handover</button>
+            </form>
+
+            <h3 class="text-xl font-bold text-gray-800 dark:text-gray-200 border-b-2 border-blue-500 pb-2 mb-4">
+                Switch Details
+                <span class="text-sm font-normal text-gray-500 dark:text-gray-400 ml-2">({{ switches|length }} physical devices analyzed)</span>
+            </h3>
+            <div class="overflow-x-auto bg-white dark:bg-gray-800 shadow rounded-lg mb-12 border border-gray-200 dark:border-gray-700">
+                <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700 text-sm whitespace-nowrap">
+                    <thead class="bg-gray-50 dark:bg-gray-900/50">
+                        <tr>
+                            <th class="px-4 py-3 text-left font-bold text-gray-600 dark:text-gray-400 uppercase">Location</th>
+                            <th class="px-4 py-3 text-left font-bold text-gray-600 dark:text-gray-400 uppercase">Hostname</th>
+                            <th class="px-4 py-3 text-left font-bold text-gray-600 dark:text-gray-400 uppercase">Stack Member</th>
+                            <th class="px-4 py-3 text-left font-bold text-gray-600 dark:text-gray-400 uppercase">IP Address</th>
+                            <th class="px-4 py-3 text-left font-bold text-gray-600 dark:text-gray-400 uppercase">Type</th>
+                            <th class="px-4 py-3 text-left font-bold text-gray-600 dark:text-gray-400 uppercase">Make/Model</th>
+                            <th class="px-4 py-3 text-left font-bold text-gray-600 dark:text-gray-400 uppercase">Sr No.</th>
+                            <th class="px-4 py-3 text-left font-bold text-gray-600 dark:text-gray-400 uppercase">MAC Address</th>
+                            <th class="px-4 py-3 text-left font-bold text-gray-600 dark:text-gray-400 uppercase">Ports</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+                        {% for s in switches %}
+                        <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition">
+                            <td class="px-4 py-3 text-gray-700 dark:text-gray-300">{{ s['Location'] }}</td>
+                            <td class="px-4 py-3 font-semibold text-gray-900 dark:text-white">{{ s['Hostname'] }}</td>
+                            <td class="px-4 py-3 text-gray-700 dark:text-gray-300">
+                                {% if s['Stack Member'] != '-' %}
+                                <span class="px-2 py-0.5 bg-purple-100 dark:bg-purple-900/40 text-purple-800 dark:text-purple-300 rounded text-xs font-semibold">{{ s['Stack Member'] }}</span>
+                                {% else %}
+                                <span class="text-gray-400 dark:text-gray-600">—</span>
+                                {% endif %}
+                            </td>
+                            <td class="px-4 py-3 text-gray-700 dark:text-gray-300">{{ s['IP Address'] }}</td>
+                            <td class="px-4 py-3 text-gray-700 dark:text-gray-300">{{ s['Device Type'] }}</td>
+                            <td class="px-4 py-3 text-gray-700 dark:text-gray-300">{{ s['Make'] }} {{ s['Model'] }}</td>
+                            <td class="px-4 py-3 text-gray-700 dark:text-gray-300">{{ s['Sr No.'] }}</td>
+                            <td class="px-4 py-3 font-mono text-xs text-gray-600 dark:text-gray-400">{{ s['MAC Address'] }}</td>
+                            <td class="px-4 py-3 text-gray-700 dark:text-gray-300">{{ s['Total Ports'] }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <h3 class="text-xl font-bold text-gray-800 dark:text-gray-200 border-b-2 border-blue-500 pb-2 mb-4">Port Mapping Topology</h3>
+            <div class="overflow-x-auto bg-white dark:bg-gray-800 shadow rounded-lg mb-12 border border-gray-200 dark:border-gray-700">
+                <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700 text-sm whitespace-nowrap">
+                    <thead class="bg-gray-50 dark:bg-gray-900/50">
+                        <tr>
+                            <th class="px-4 py-3 text-left font-bold text-gray-600 dark:text-gray-400 uppercase">Device Type</th>
+                            <th class="px-4 py-3 text-left font-bold text-gray-600 dark:text-gray-400 uppercase">Hostname</th>
+                            <th class="px-4 py-3 text-left font-bold text-gray-600 dark:text-gray-400 uppercase">Device IP</th>
+                            <th class="px-4 py-3 text-left font-bold text-gray-600 dark:text-gray-400 uppercase">Port No.</th>
+                            <th class="px-4 py-3 text-left font-bold text-gray-600 dark:text-gray-400 uppercase">Status</th>
+                            <th class="px-4 py-3 text-left font-bold text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 uppercase">Neighbour Hostname</th>
+                            <th class="px-4 py-3 text-left font-bold text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 uppercase">Neighbour IP</th>
+                            <th class="px-4 py-3 text-left font-bold text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 uppercase">Neighbour Port</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+                        {% for p in ports %}
+                        <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition">
+                            <td class="px-4 py-3 text-gray-700 dark:text-gray-300">{{ p['Device Type'] }}</td>
+                            <td class="px-4 py-3 font-semibold text-gray-900 dark:text-white">{{ p['Hostname'] }}</td>
+                            <td class="px-4 py-3 text-gray-700 dark:text-gray-300">{{ p['Device IP'] }}</td>
+                            <td class="px-4 py-3 font-medium text-gray-900 dark:text-white">{{ p['Port No.'] }}</td>
+                            <td class="px-4 py-3">
+                                {% if p['State'] == 'up' %}
+                                    <span class="px-2 py-1 bg-green-100 dark:bg-green-900/50 text-green-800 dark:text-green-400 rounded text-xs font-bold uppercase">UP</span>
+                                {% else %}
+                                    <span class="px-2 py-1 bg-red-100 dark:bg-red-900/50 text-red-800 dark:text-red-400 rounded text-xs font-bold uppercase">DOWN</span>
+                                {% endif %}
+                            </td>
+                            <td class="px-4 py-3 font-semibold text-blue-800 dark:text-blue-300 bg-blue-50/30 dark:bg-blue-900/10">{{ p['Neighbour Hostname'] }}</td>
+                            <td class="px-4 py-3 text-blue-800 dark:text-blue-300 bg-blue-50/30 dark:bg-blue-900/10">
+                                {% if p['Neighbour Device IP'] == 'Unknown (Upload config)' %}
+                                    <span class="text-amber-600 dark:text-amber-400 text-xs italic">{{ p['Neighbour Device IP'] }}</span>
+                                {% else %}
+                                    {{ p['Neighbour Device IP'] }}
+                                {% endif %}
+                            </td>
+                            <td class="px-4 py-3 text-blue-800 dark:text-blue-300 bg-blue-50/30 dark:bg-blue-900/10">{{ p['Neighbour Port No.'] }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% endif %}
+
+        </div>
+    </div>
+</body>
+</html>
