@@ -258,7 +258,7 @@ class SwitchHandoverParser:
         lines = self.log_text.split('\n')
         in_cdp = False; prev = ""
         # Added 'Gi' and 'Tw' and other abrivations for extra safety with varying Cisco output
-        port_pat = re.compile(r'\b(Gig|Gi|Te|Ten|Fa|Fas|Twe|Tw|Hu|Hun)\s*\d+/\d+(?:/\d+)?', re.IGNORECASE)
+        port_pat = re.compile(r'\b(Gig|Gi|Te|Ten|Fa|Fas|Twe|Tw|Hu|Hun|Port|Eth|Ethernet)\s*\d+(?:/\d+)*', re.IGNORECASE)
         for line in lines:
             if "Device ID" in line: in_cdp = True; continue
             if in_cdp and ("#" in line or "Total" in line): in_cdp = False; continue
