@@ -151,13 +151,32 @@ class SwitchHandoverParser:
         ps_counts = self._count_active_power_supplies() # NEW: Get PS counts
         
         is_l3 = re.search(r'^ip routing', self.log_text, re.MULTILINE)
+        # ---------------------------------------------------------
+        # NEW FIRMWARE LOGIC: The "Uptime Anchor"
+        # ---------------------------------------------------------
+        uptime_match = re.search(r'uptime is', self.log_text)
+        firmware_version = "N/A"
+
+        if uptime_match:
+            # Look only at the 2000 characters immediately before the uptime line
+            start_idx = max(0, uptime_match.start() - 2000)
+            sh_ver_chunk = self.log_text[start_idx:uptime_match.start()]
+            fw_match = re.search(r'Cisco IOS.*?Software.*?Version\s+([A-Za-z0-9\.\(\)]+)', sh_ver_chunk, re.IGNORECASE)
+            if fw_match:
+                firmware_version = fw_match.group(1)
         
+        # Fallback if the uptime line isn't in the text file
+        if firmware_version == "N/A":
+            fw_match = re.search(r'Cisco IOS.*?Software.*?Version\s+([A-Za-z0-9\.\(\)]+)', self.log_text, re.IGNORECASE)
+            firmware_version = fw_match.group(1) if fw_match else "N/A"
+        # ---------------------------------------------------------
+
         base = {
             "Location": self.location, "Location Type": self.location_type,
             "Hostname": self.hostname, "IP Address": self.mgmt_ip,
             "Device Type": "L3 / Core Switch" if is_l3 else "L2 / Access Switch",
             "Make": "Cisco",
-            "Firmware Version": re.search(r'Version\s+([A-Za-z0-9\.\(\)]+)', self.log_text).group(1) if re.search(r'Version\s+([A-Za-z0-9\.\(\)]+)', self.log_text) else "N/A",
+            "Firmware Version": firmware_version,  # <--- Now uses the isolated variable
             "Uptime": re.search(r'uptime is\s+(.*?)(?:\r|\n)', self.log_text).group(1).strip() if re.search(r'uptime is\s+(.*?)(?:\r|\n)', self.log_text) else "N/A",
             "Default Gateway": re.search(r'ip default-gateway (\d+\.\d+\.\d+\.\d+)', self.log_text).group(1) if re.search(r'ip default-gateway (\d+\.\d+\.\d+\.\d+)', self.log_text) else "N/A",
             "NTP Server": ", ".join(re.findall(r'^ntp server (\d+\.\d+\.\d+\.\d+)', self.log_text, re.MULTILINE))
