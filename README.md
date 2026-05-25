@@ -67,6 +67,7 @@ terminal length 0
 show running-config
 show version
 show cdp neighbors
+show cdp neighbors det
 show ip int bri
 show env all      (or 'show inventory')
 
