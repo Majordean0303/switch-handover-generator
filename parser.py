@@ -196,7 +196,7 @@ class SwitchHandoverParser:
             
             # NEW: Assign Active Power Supplies to the specific switch
             ps_count = ps_counts.get(s_id, 0)
-            entry["Active Power Supplies"] = ps_count if ps_count > 0 else "0 / Not Found"
+            entry["Active Power Supplies"] = ps_count if ps_count > 0 else "1"
             
             results.append(entry)
             
