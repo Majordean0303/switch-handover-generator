@@ -3,9 +3,17 @@ import pandas as pd
 import io
 import json
 
+import sys
+import os
 from parser import SwitchHandoverParser
 
-app = Flask(__name__)
+def get_resource_path():
+    if hasattr(sys, '_MEIPASS'):
+        return sys._MEIPASS
+    return os.path.dirname(os.path.abspath(__file__))
+
+base_dir = get_resource_path()
+app = Flask(__name__, template_folder=os.path.join(base_dir, 'templates'))
 
 @app.after_request
 def add_attribution_header(response):
@@ -29,10 +37,14 @@ def generate_handover():
     if not files or files[0].filename == '':
         return render_template('index.html', error="No files uploaded.")
 
+    valid_files = [f for f in files if f.filename.lower().endswith(('.txt', '.log'))]
+    if not valid_files:
+        return render_template('index.html', error="No valid files uploaded. Please upload .txt or .log files.")
+
     all_switch_details = []
     all_port_mappings  = []
 
-    for file in files:
+    for file in valid_files:
         log_text = file.read().decode('utf-8', errors='ignore')
         parser   = SwitchHandoverParser(
             log_text,

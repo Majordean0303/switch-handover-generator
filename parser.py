@@ -35,17 +35,18 @@ class SwitchHandoverParser:
     # --- Interface Name handeling ---
     def _normalize_intf(self, name):
         name = name.lower()
-        # 1. Standardize full names
-        name = name.replace("twentyfivegige", "twe")
-        name = name.replace("tengigabitethernet", "te")
-        name = name.replace("gigabitethernet", "gig")
-        name = name.replace("fastethernet", "fa")
-        name = name.replace("hundredgige", "hu")
-        
-        # 2. Standardize Cisco CDP abbreviations
-        name = name.replace("ten", "te")
-        name = name.replace("fas", "fa")
-        name = name.replace("hun", "hu")
+        replacements = {
+            "twentyfivegige": "twe",
+            "tengigabitethernet": "te",
+            "gigabitethernet": "gig",
+            "fastethernet": "fa",
+            "hundredgige": "hu",
+            "ten": "te",
+            "fas": "fa",
+            "hun": "hu"
+        }
+        for old, new in replacements.items():
+            name = name.replace(old, new)
         
         # 3. Strip all remaining spaces
         return re.sub(r'\s+', '', name)
@@ -171,14 +172,17 @@ class SwitchHandoverParser:
             firmware_version = fw_match.group(1) if fw_match else "N/A"
         # ---------------------------------------------------------
 
+        uptime_match = re.search(r'uptime is\s+(.*?)(?:\r|\n)', self.log_text)
+        gw_match = re.search(r'ip default-gateway (\d+\.\d+\.\d+\.\d+)', self.log_text)
+
         base = {
             "Location": self.location, "Location Type": self.location_type,
             "Hostname": self.hostname, "IP Address": self.mgmt_ip,
             "Device Type": "L3 / Core Switch" if is_l3 else "L2 / Access Switch",
             "Make": "Cisco",
             "Firmware Version": firmware_version,  # <--- Now uses the isolated variable
-            "Uptime": re.search(r'uptime is\s+(.*?)(?:\r|\n)', self.log_text).group(1).strip() if re.search(r'uptime is\s+(.*?)(?:\r|\n)', self.log_text) else "N/A",
-            "Default Gateway": re.search(r'ip default-gateway (\d+\.\d+\.\d+\.\d+)', self.log_text).group(1) if re.search(r'ip default-gateway (\d+\.\d+\.\d+\.\d+)', self.log_text) else "N/A",
+            "Uptime": uptime_match.group(1).strip() if uptime_match else "N/A",
+            "Default Gateway": gw_match.group(1) if gw_match else "N/A",
             "NTP Server": ", ".join(re.findall(r'^ntp server (\d+\.\d+\.\d+\.\d+)', self.log_text, re.MULTILINE))
         }
         
