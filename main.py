@@ -1,3 +1,4 @@
+# Author: Yash Nalawde. Programmer Name: MajorDean0303
 import customtkinter as ctk
 from tkinter import filedialog, messagebox
 from tkinter import ttk
@@ -268,6 +269,20 @@ class App(ctk.CTk):
         finally:
             self.after(0, lambda: self.generate_btn.configure(
                 state="normal", text="ANALYZE & GENERATE"))
+            
+    def show_info(self):
+        info_text = (
+            "To generate a 100% complete handover matrix, the tool requires specific output from the switch.\n\n"
+            "When pulling logs, ensure you execute the following commands in order and save the output as a .txt or .log file:\n\n"
+            "terminal length 0\n"
+            "show running-config\n"
+            "show version\n"
+            "show cdp neighbors\n"
+            "show cdp neighbors det\n"
+            "show ip int bri\n"
+            "show env all (or 'show inventory')"
+        )
+        messagebox.showinfo("Required Commands", info_text)
 
     def export_excel(self, export_type):
         default_names = {
