@@ -1,7 +1,7 @@
 import customtkinter as ctk
 from tkinter import filedialog, messagebox
 from tkinter import ttk
-import pandas as pd
+import xlsxwriter
 import threading
 import os
 
@@ -297,17 +297,34 @@ class App(ctk.CTk):
         ]
 
         try:
-            with pd.ExcelWriter(path, engine='xlsxwriter') as writer:
-                if export_type in ('switches', 'both'):
-                    pd.DataFrame(self.all_switch_details) \
-                      .reindex(columns=switch_cols) \
-                      .to_excel(writer, sheet_name="Switch Details", index=False)
-                if export_type in ('ports', 'both'):
-                    pd.DataFrame(self.all_port_mappings) \
-                      .reindex(columns=port_cols) \
-                      .to_excel(writer, sheet_name="Port Mapping", index=False)
-                for ws in writer.sheets.values():
-                    ws.autofit()
+            workbook = xlsxwriter.Workbook(path)
+            
+            # Helper to write sheet data
+            def write_sheet(sheet_name, columns, data_list):
+                ws = workbook.add_worksheet(sheet_name)
+                # Format for headers
+                header_format = workbook.add_format({'bold': True, 'bg_color': '#D3D3D3', 'border': 1})
+                
+                # Write Headers
+                for col_num, col_name in enumerate(columns):
+                    ws.write(0, col_num, col_name, header_format)
+                    # Set approximate width
+                    ws.set_column(col_num, col_num, max(len(col_name) + 4, 15))
+                    
+                # Write Rows
+                for row_num, row_data in enumerate(data_list):
+                    for col_num, col_name in enumerate(columns):
+                        val = row_data.get(col_name, "")
+                        ws.write(row_num + 1, col_num, str(val))
+
+            if export_type in ('switches', 'both'):
+                write_sheet("Switch Details", switch_cols, self.all_switch_details)
+                
+            if export_type in ('ports', 'both'):
+                write_sheet("Port Mapping", port_cols, self.all_port_mappings)
+                
+            workbook.close()
+            
             self.log(f"✔ Saved: {path}")
             messagebox.showinfo("Success", "Report exported successfully!")
         except Exception as e:
@@ -317,4 +334,12 @@ class App(ctk.CTk):
 
 if __name__ == "__main__":
     app = App()
+    
+    # Close the PyInstaller Splash Screen if we are running from a bundled executable
+    try:
+        import pyi_splash
+        pyi_splash.close()
+    except ImportError:
+        pass
+        
     app.mainloop()

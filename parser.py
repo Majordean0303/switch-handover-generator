@@ -283,8 +283,12 @@ class SwitchHandoverParser:
         # Added 'Gi' and 'Tw' and other abrivations for extra safety with varying Cisco output
         port_pat = re.compile(r'\b(Gig|Gi|Te|Ten|Fa|Fas|Twe|Tw|Hu|Hun|Port|Eth|Ethernet)\s*\d+(?:/\d+)*', re.IGNORECASE)
         for line in lines:
-            if "Device ID" in line: in_cdp = True; continue
-            if in_cdp and ("#" in line or "Total" in line): in_cdp = False; continue
+            if "Device ID" in line and "Local Intrfce" in line:
+                in_cdp = True
+                continue
+            if in_cdp and ("#" in line or "Total" in line or "====" in line or "Command:" in line): 
+                in_cdp = False
+                continue
             if in_cdp:
                 m = list(port_pat.finditer(line))
                 if m:

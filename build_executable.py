@@ -11,7 +11,7 @@ def build():
         "--noconfirm",
         "--onefile",
         "--windowed",
-
+        "--splash", "splash.png",
         "--name", "SwitchHandoverGenerator",
         "main.py"
     ]
