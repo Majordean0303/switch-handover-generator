@@ -220,8 +220,8 @@ class SwitchHandoverParser:
             ip_match = re.search(r'IP address:\s*([\d\.]+)', block)
             
             if device_match and ip_match:
-                # Strip domain names if present (e.g., SW1.cisco.com -> SW1)
-                raw_hostname = device_match.group(1).split('.')[0]
+                # Do not strip domains blindly, to preserve names with dots like MAC addresses
+                raw_hostname = device_match.group(1).strip()
                 ip_address = ip_match.group(1)
                 
                 # Add to our dictionary
@@ -291,7 +291,7 @@ class SwitchHandoverParser:
                     key = self._normalize_intf(m[0].group(0))
                     if key in ports:
                         raw_h = line[:m[0].start()].strip()
-                        neigh_host = (raw_h if raw_h else prev).split('.')[0]
+                        neigh_host = (raw_h if raw_h else prev).strip()
                         
                         ports[key]["Neighbour Hostname"] = neigh_host
                         ports[key]["Neighbour Port No."] = m[-1].group(0).strip()

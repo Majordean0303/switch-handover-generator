@@ -11,7 +11,7 @@ def build():
         "--noconfirm",
         "--onefile",
         "--windowed",
-        "--add-data", "templates;templates",
+
         "--name", "SwitchHandoverGenerator",
         "main.py"
     ]
