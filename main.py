@@ -5,7 +5,7 @@ import xlsxwriter
 import threading
 import os
 
-from parser import SwitchHandoverParser
+from parser import SwitchHandoverParser, APHandoverParser
 
 ctk.set_appearance_mode("Dark")
 ctk.set_default_color_theme("blue")
@@ -21,6 +21,8 @@ class App(ctk.CTk):
         self.selected_files = []
         self.all_switch_details = []
         self.all_port_mappings = []
+        self.all_sfps = []
+        self.all_complete_ports = []
 
         self.title_font  = ctk.CTkFont(family="Segoe UI", size=26, weight="bold")
         self.header_font = ctk.CTkFont(family="Segoe UI", size=13, weight="bold")
@@ -72,6 +74,17 @@ class App(ctk.CTk):
                                        anchor="w", width=160)
         self.file_label.grid(row=0, column=5, rowspan=2, sticky="w")
 
+        options_frame = ctk.CTkFrame(self, fg_color="transparent")
+        options_frame.pack(fill="x", padx=24, pady=(0, 4))
+        
+        self.sfp_var = ctk.BooleanVar(value=False)
+        self.sfp_cb = ctk.CTkCheckBox(options_frame, text="Get Inventory of SFPs", variable=self.sfp_var, font=self.normal_font)
+        self.sfp_cb.pack(side="left", padx=(0, 20))
+        
+        self.all_ports_var = ctk.BooleanVar(value=False)
+        self.all_ports_cb = ctk.CTkCheckBox(options_frame, text="Complete Port Configuration Report", variable=self.all_ports_var, font=self.normal_font)
+        self.all_ports_cb.pack(side="left")
+
         # ── Analyse button ─────────────────────────────────────────────
         self.generate_btn = ctk.CTkButton(
             self, text="ANALYZE & GENERATE",
@@ -88,6 +101,8 @@ class App(ctk.CTk):
         self.tab_logs     = self.tabview.add("Analysis Logs")
         self.tab_switches = self.tabview.add("Switch Details")
         self.tab_ports    = self.tabview.add("Port Mappings")
+        self.tab_sfp      = self.tabview.add("SFP Inventory")
+        self.tab_all_ports= self.tabview.add("All Ports Config")
 
         self.log_box = ctk.CTkTextbox(
             self.tab_logs, state="disabled",
@@ -111,6 +126,8 @@ class App(ctk.CTk):
 
         self.tree_switches = self._make_tree(self.tab_switches)
         self.tree_ports    = self._make_tree(self.tab_ports)
+        self.tree_sfp      = self._make_tree(self.tab_sfp)
+        self.tree_all_ports= self._make_tree(self.tab_all_ports)
 
         # ── Download buttons ───────────────────────────────────────────
         btn_row = ctk.CTkFrame(self, fg_color="transparent")
@@ -223,6 +240,8 @@ class App(ctk.CTk):
     def populate_tables(self):
         self._populate_tree(self.tree_switches, self.all_switch_details)
         self._populate_tree(self.tree_ports,    self.all_port_mappings)
+        self._populate_tree(self.tree_sfp,      self.all_sfps)
+        self._populate_tree(self.tree_all_ports,self.all_complete_ports)
         if self.all_switch_details:
             self.tabview.set("Switch Details")
         for b in (self.btn_export_switches, self.btn_export_ports, self.btn_export_both):
@@ -236,28 +255,48 @@ class App(ctk.CTk):
 
             self.all_switch_details = []
             self.all_port_mappings  = []
+            self.all_sfps = []
+            self.all_complete_ports = []
+            
+            get_sfps = self.sfp_var.get()
+            get_all_ports = self.all_ports_var.get()
 
             for filepath in self.selected_files:
                 self.log(f"Parsing: {os.path.basename(filepath)}")
                 with open(filepath, 'r', encoding='utf-8', errors='ignore') as f:
                     log_text = f.read()
-                p = SwitchHandoverParser(log_text, location=location,
-                                         location_type=location_type,
-                                         mgmt_vlan=mgmt_vlan)
-                self.all_switch_details.extend(p.parse_switch_details())
-                self.all_port_mappings.extend(p.parse_port_mapping())
+                
+                if "Device Type: AP" in log_text or "AP Name" in log_text:
+                    p = APHandoverParser(log_text, location=location, location_type=location_type)
+                    self.all_switch_details.extend(p.parse_device_details())
+                    self.all_port_mappings.extend(p.parse_port_mapping())
+                    if get_sfps:
+                        self.all_sfps.extend(p.parse_sfp_inventory())
+                    if get_all_ports:
+                        self.all_complete_ports.extend(p.parse_port_mapping(return_all=True))
+                else:
+                    p = SwitchHandoverParser(log_text, location=location,
+                                             location_type=location_type,
+                                             mgmt_vlan=mgmt_vlan)
+                    self.all_switch_details.extend(p.parse_switch_details())
+                    self.all_port_mappings.extend(p.parse_port_mapping())
+                    if get_sfps:
+                        self.all_sfps.extend(p.parse_sfp_inventory())
+                    if get_all_ports:
+                        self.all_complete_ports.extend(p.parse_port_mapping(return_all=True))
 
             # Cross-resolution
             self.log("Resolving neighbour IPs…")
             ip_dir = {s['Hostname']: s['IP Address']
                       for s in self.all_switch_details if s['IP Address'] != 'N/A'}
-            for port in self.all_port_mappings:
-                if port['Neighbour Device IP'] != '-':
-                    continue
-                nh = port['Neighbour Hostname']
-                if nh != '-':
-                    clean = nh.split('.')[0]
-                    port['Neighbour Device IP'] = ip_dir.get(clean, "Unknown (Upload config)")
+            for port_list in (self.all_port_mappings, self.all_complete_ports):
+                for port in port_list:
+                    if port['Neighbour Device IP'] != '-':
+                        continue
+                    nh = port['Neighbour Hostname']
+                    if nh != '-':
+                        clean = nh.split('.')[0]
+                        port['Neighbour Device IP'] = ip_dir.get(clean, "Unknown (Upload config)")
 
             self.log("✔ Analysis complete — download reports below.")
             self.after(0, self.populate_tables)
@@ -292,7 +331,7 @@ class App(ctk.CTk):
         ]
         port_cols = [
             'Location', 'Location Type', 'Device Type', 'Hostname', 'Device IP',
-            'Port No.', 'Description', 'State',
+            'Port No.', 'Description', 'State', 'Mode', 'VLAN ID',
             'Neighbour Hostname', 'Neighbour Device IP', 'Neighbour Port No.',
         ]
 
@@ -322,6 +361,13 @@ class App(ctk.CTk):
                 
             if export_type in ('ports', 'both'):
                 write_sheet("Port Mapping", port_cols, self.all_port_mappings)
+                
+            if export_type == 'both':
+                if self.all_sfps:
+                    sfp_cols = ['Location', 'Location Type', 'Hostname', 'Device IP', 'Interface', 'Description', 'PID', 'Serial Number', 'In Use']
+                    write_sheet("SFP Inventory", sfp_cols, self.all_sfps)
+                if self.all_complete_ports:
+                    write_sheet("Complete Port Config", port_cols, self.all_complete_ports)
                 
             workbook.close()
             

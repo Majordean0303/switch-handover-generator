@@ -35,20 +35,11 @@ class SwitchHandoverParser:
     # --- Interface Name handeling ---
     def _normalize_intf(self, name):
         name = name.lower()
-        replacements = {
-            "twentyfivegige": "twe",
-            "tengigabitethernet": "te",
-            "gigabitethernet": "gig",
-            "fastethernet": "fa",
-            "hundredgige": "hu",
-            "ten": "te",
-            "fas": "fa",
-            "hun": "hu"
-        }
-        for old, new in replacements.items():
-            name = name.replace(old, new)
-        
-        # 3. Strip all remaining spaces
+        name = re.sub(r'^twentyfivegige|^twe', 'twe', name)
+        name = re.sub(r'^tengigabitethernet|^ten|^te', 'te', name)
+        name = re.sub(r'^gigabitethernet|^gig|^gi', 'gig', name)
+        name = re.sub(r'^fastethernet|^fas|^fa', 'fa', name)
+        name = re.sub(r'^hundredgige|^hun|^hu', 'hu', name)
         return re.sub(r'\s+', '', name)
     # --- Extracting Stack Member details of a switch ---
     def _parse_stack_members(self):
@@ -228,8 +219,7 @@ class SwitchHandoverParser:
                 neighbor_map[raw_hostname] = ip_address
                 
         return neighbor_map
-    #--- Create the Port Mapping ---
-    def parse_port_mapping(self):
+    def parse_port_mapping(self, return_all=False):
         ports = {}
         for block in re.split(r'^interface ', self.log_text, flags=re.MULTILINE)[1:]:
             lines = block.strip().split('\n')
@@ -242,15 +232,18 @@ class SwitchHandoverParser:
             if desc_match:
                 desc = desc_match.group(1).strip()
                 
-            vlan_mode = "Access"
+            mode = "Access"
+            vlan_id = "1"
             if re.search(r'^\s*switchport mode trunk', block, re.MULTILINE | re.IGNORECASE) or re.search(r'^\s*switchport trunk allowed vlan', block, re.MULTILINE | re.IGNORECASE):
-                vlan_mode = "Trunk"
+                mode = "Trunk"
+                vlan_id = "All"
             else:
                 vlan_match = re.search(r'^\s*switchport access vlan\s+(\d+)', block, re.MULTILINE | re.IGNORECASE)
                 if vlan_match:
-                    vlan_mode = f"Access (VLAN {vlan_match.group(1)})"
+                    vlan_id = vlan_match.group(1)
                 elif re.search(r'^\s*no switchport', block, re.MULTILINE | re.IGNORECASE):
-                    vlan_mode = "Routed / L3"
+                    mode = "Routed / L3"
+                    vlan_id = "-"
             
             clean = raw.replace("TwentyFiveGigE", "Twe ").replace("TenGigabitEthernet", "Te ").replace("GigabitEthernet", "Gig ").replace("FastEthernet", "Fa ").replace("HundredGigE", "Hu ")
             clean = re.sub(r'\s+', ' ', clean).strip()
@@ -265,7 +258,8 @@ class SwitchHandoverParser:
                 "Device IP": self.mgmt_ip,
                 "Port No.": clean, 
                 "Description": desc,        
-                "VLAN / Mode": vlan_mode,   
+                "Mode": mode,   
+                "VLAN ID": vlan_id,
                 "State": "-", 
                 "Neighbour Hostname": "-",
                 "Neighbour Device IP": "-", 
@@ -306,4 +300,96 @@ class SwitchHandoverParser:
                             
             prev = line.strip()
             
+        if return_all:
+            return list(ports.values())
         return [p for p in ports.values() if p["Neighbour Hostname"] != "-"]
+
+    def parse_sfp_inventory(self):
+        sfps = []
+        
+        # Build a quick dictionary of port states
+        port_states = {}
+        for m in re.finditer(r'^([A-Za-z0-9/]+)\s+(?:\S+)\s+(?:\w+)\s+(?:\w+)\s+(up|down|administratively down)', self.log_text, re.MULTILINE):
+            port_states[self._normalize_intf(m.group(1))] = m.group(2)
+            
+        pattern = r'NAME:\s*"([^"]+)",\s*DESCR:\s*"([^"]+)"\s*(?:\r?\n)*PID:\s*([^,]*?)\s*,\s*VID:\s*([^,]*?)\s*,\s*SN:\s*(.*)'
+        for match in re.finditer(pattern, self.log_text, re.IGNORECASE):
+            name, desc, pid, vid, sn = match.groups()
+            name = name.strip()
+            desc = desc.strip()
+            pid = pid.strip()
+            sn = sn.strip() if sn.strip() else "N/A"
+            
+            if re.search(r'(SFP|QSFP|XFP|Transceiver|GLC-|FET-|BIDI|10G|40G|100G|25G|CWDM|DWDM)', desc, re.IGNORECASE) or re.search(r'(SFP|QSFP|XFP|GLC-|FET-|BIDI|CWDM|DWDM)', pid, re.IGNORECASE):
+                
+                # Check state to determine if in use
+                k = self._normalize_intf(name)
+                state = port_states.get(k, "Unknown")
+                in_use = "Yes" if state == "up" else ("No" if state in ["down", "administratively down"] else "Unknown")
+                
+                sfps.append({
+                    "Location": self.location,
+                    "Location Type": self.location_type,
+                    "Hostname": self.hostname,
+                    "Device IP": self.mgmt_ip,
+                    "Interface": name,
+                    "Description": desc,
+                    "PID": pid,
+                    "Serial Number": sn,
+                    "In Use": in_use
+                })
+        return sfps
+
+class APHandoverParser:
+    def __init__(self, log_text, location="Unknown", location_type="Unknown"):
+        cleaned_text = re.sub(r'\x1b\[[0-9;]*m', '', log_text)
+        self.log_text = cleaned_text.replace('\r', '').replace('\\', '')
+        self.location = location
+        self.location_type = location_type
+
+    def parse_device_details(self):
+        ap_name_match = re.search(r'AP Name\s*:\s*(\S+)', self.log_text, re.IGNORECASE)
+        hostname = ap_name_match.group(1) if ap_name_match else "N/A"
+
+        ip_match = re.search(r'Device IP:\s*(\S+)', self.log_text, re.IGNORECASE)
+        if not ip_match:
+            ip_match = re.search(r'inet addr:\s*(\S+)', self.log_text, re.IGNORECASE)
+        mgmt_ip = ip_match.group(1) if ip_match else "N/A"
+        
+        mac_match = re.search(r'HWaddr\s+([\w:]+)', self.log_text, re.IGNORECASE)
+        if not mac_match:
+            mac_match = re.search(r'Base Ethernet MAC Address\s*:\s*([\w:]+)', self.log_text, re.IGNORECASE)
+        mac_addr = mac_match.group(1) if mac_match else "N/A"
+
+        model_match = re.search(r'PID:\s*([A-Za-z0-9\-]+)', self.log_text)
+        if not model_match:
+            model_match = re.search(r'NAME:\s*([^,]+)', self.log_text)
+        model = model_match.group(1).strip() if model_match else "N/A"
+
+        sn_match = re.search(r'SN:\s*(\S+)', self.log_text)
+        sn = sn_match.group(1) if sn_match else "N/A"
+
+        return [{
+            "Location": self.location,
+            "Location Type": self.location_type,
+            "Hostname": hostname,
+            "Stack Member": "N/A",
+            "IP Address": mgmt_ip,
+            "Device Type": "AP",
+            "Make": "Cisco",
+            "Model": model,
+            "Sr No.": sn,
+            "Firmware Version": "N/A",
+            "Uptime": "N/A",
+            "Total Ports": "N/A",
+            "MAC Address": mac_addr,
+            "Default Gateway": "N/A",
+            "NTP Server": "N/A",
+            "Active Power Supplies": "N/A"
+        }]
+
+    def parse_port_mapping(self, return_all=False):
+        return []
+        
+    def parse_sfp_inventory(self):
+        return []
