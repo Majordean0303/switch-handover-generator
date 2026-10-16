@@ -348,112 +348,120 @@
             </Grid>
 
             <!-- 4. Export Reports Card Toolbar (Excel & CSV) -->
-            <ui:Card Grid.Row="3" Margin="0,4,0,0" Padding="14,10">
+            <ui:Card Grid.Row="3" Margin="0,4,0,0" Padding="16,12">
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
 
-                    <!-- Row 1: Excel Exports -->
+                    <!-- Row 1: Excel Exports (Evenly Spaced Across Full Window Width) -->
                     <Grid Grid.Row="0" Margin="0,0,0,10">
                         <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="130"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
                             <ColumnDefinition Width="*"/>
                         </Grid.ColumnDefinitions>
 
-                        <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,16,0">
+                        <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
                             <ui:SymbolIcon Symbol="DocumentTable24" FontSize="16" Foreground="{DynamicResource AccentFillColorDefaultBrush}" Margin="0,0,6,0"/>
-                            <TextBlock Text="EXCEL REPORTS:" FontWeight="Bold" FontSize="11" Foreground="{DynamicResource TextFillColorSecondaryBrush}" VerticalAlignment="Center"/>
+                            <TextBlock Text="EXCEL:" FontWeight="Bold" FontSize="11" Foreground="{DynamicResource TextFillColorSecondaryBrush}" VerticalAlignment="Center"/>
                         </StackPanel>
 
-                        <WrapPanel Grid.Column="1" VerticalAlignment="Center">
-                            <ui:Button Command="{Binding ExportExcelCommand}"
-                                       CommandParameter="both"
-                                       IsEnabled="{Binding HasResults}"
-                                       Appearance="Primary"
-                                       Height="34"
-                                       Padding="16,0"
-                                       Margin="0,0,10,0"
-                                       Icon="{ui:SymbolIcon DocumentTable24}"
-                                       Content="Complete Handover (.xlsx)"
-                                       FontWeight="SemiBold"/>
+                        <ui:Button Grid.Column="1"
+                                   Command="{Binding ExportExcelCommand}"
+                                   CommandParameter="both"
+                                   IsEnabled="{Binding HasResults}"
+                                   Appearance="Primary"
+                                   Height="36"
+                                   Margin="0,0,8,0"
+                                   HorizontalAlignment="Stretch"
+                                   Icon="{ui:SymbolIcon DocumentTable24}"
+                                   Content="Complete Handover (.xlsx)"
+                                   FontWeight="SemiBold"/>
 
-                            <ui:Button Command="{Binding ExportExcelCommand}"
-                                       CommandParameter="switches"
-                                       IsEnabled="{Binding HasResults}"
-                                       Appearance="Secondary"
-                                       Height="34"
-                                       Padding="14,0"
-                                       Margin="0,0,10,0"
-                                       Icon="{ui:SymbolIcon Table24}"
-                                       Content="Switch Details (.xlsx)"/>
+                        <ui:Button Grid.Column="2"
+                                   Command="{Binding ExportExcelCommand}"
+                                   CommandParameter="switches"
+                                   IsEnabled="{Binding HasResults}"
+                                   Appearance="Secondary"
+                                   Height="36"
+                                   Margin="4,0,8,0"
+                                   HorizontalAlignment="Stretch"
+                                   Icon="{ui:SymbolIcon Table24}"
+                                   Content="Switch Details (.xlsx)"/>
 
-                            <ui:Button Command="{Binding ExportExcelCommand}"
-                                       CommandParameter="ports"
-                                       IsEnabled="{Binding HasResults}"
-                                       Appearance="Secondary"
-                                       Height="34"
-                                       Padding="14,0"
-                                       Margin="0,0,10,0"
-                                       Icon="{ui:SymbolIcon Connector24}"
-                                       Content="Port Mappings (.xlsx)"/>
-                        </WrapPanel>
+                        <ui:Button Grid.Column="3"
+                                   Command="{Binding ExportExcelCommand}"
+                                   CommandParameter="ports"
+                                   IsEnabled="{Binding HasResults}"
+                                   Appearance="Secondary"
+                                   Height="36"
+                                   Margin="4,0,0,0"
+                                   HorizontalAlignment="Stretch"
+                                   Icon="{ui:SymbolIcon Connector24}"
+                                   Content="Port Mappings (.xlsx)"/>
                     </Grid>
 
-                    <!-- Row 2: CSV Exports -->
+                    <!-- Row 2: CSV Exports (Evenly Spaced Across Full Window Width) -->
                     <Grid Grid.Row="1">
                         <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="130"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
                             <ColumnDefinition Width="*"/>
                         </Grid.ColumnDefinitions>
 
-                        <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,16,0">
+                        <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
                             <ui:SymbolIcon Symbol="ArrowExportRtl24" FontSize="16" Foreground="#10B981" Margin="0,0,6,0"/>
-                            <TextBlock Text="CSV EXPORTS:   " FontWeight="Bold" FontSize="11" Foreground="{DynamicResource TextFillColorSecondaryBrush}" VerticalAlignment="Center"/>
+                            <TextBlock Text="CSV:" FontWeight="Bold" FontSize="11" Foreground="{DynamicResource TextFillColorSecondaryBrush}" VerticalAlignment="Center"/>
                         </StackPanel>
 
-                        <WrapPanel Grid.Column="1" VerticalAlignment="Center">
-                            <ui:Button Command="{Binding ExportCsvCommand}"
-                                       CommandParameter="ports"
-                                       IsEnabled="{Binding HasResults}"
-                                       Appearance="Secondary"
-                                       Height="34"
-                                       Padding="14,0"
-                                       Margin="0,0,10,0"
-                                       Icon="{ui:SymbolIcon Connector24}"
-                                       Content="Port Mapping CSV"/>
+                        <ui:Button Grid.Column="1"
+                                   Command="{Binding ExportCsvCommand}"
+                                   CommandParameter="ports"
+                                   IsEnabled="{Binding HasResults}"
+                                   Appearance="Secondary"
+                                   Height="36"
+                                   Margin="0,0,8,0"
+                                   HorizontalAlignment="Stretch"
+                                   Icon="{ui:SymbolIcon Connector24}"
+                                   Content="Port Mapping CSV"/>
 
-                            <ui:Button Command="{Binding ExportCsvCommand}"
-                                       CommandParameter="allports"
-                                       IsEnabled="{Binding HasCompletePorts}"
-                                       Appearance="Secondary"
-                                       Height="34"
-                                       Padding="14,0"
-                                       Margin="0,0,10,0"
-                                       Icon="{ui:SymbolIcon DocumentTable24}"
-                                       Content="All Ports Config CSV"/>
+                        <ui:Button Grid.Column="2"
+                                   Command="{Binding ExportCsvCommand}"
+                                   CommandParameter="allports"
+                                   IsEnabled="{Binding HasCompletePorts}"
+                                   Appearance="Secondary"
+                                   Height="36"
+                                   Margin="4,0,8,0"
+                                   HorizontalAlignment="Stretch"
+                                   Icon="{ui:SymbolIcon DocumentTable24}"
+                                   Content="All Ports Config CSV"/>
 
-                            <ui:Button Command="{Binding ExportCsvCommand}"
-                                       CommandParameter="sfp"
-                                       IsEnabled="{Binding HasSfps}"
-                                       Appearance="Secondary"
-                                       Height="34"
-                                       Padding="14,0"
-                                       Margin="0,0,10,0"
-                                       Icon="{ui:SymbolIcon Grid24}"
-                                       Content="SFP Inventory CSV"/>
+                        <ui:Button Grid.Column="3"
+                                   Command="{Binding ExportCsvCommand}"
+                                   CommandParameter="sfp"
+                                   IsEnabled="{Binding HasSfps}"
+                                   Appearance="Secondary"
+                                   Height="36"
+                                   Margin="4,0,8,0"
+                                   HorizontalAlignment="Stretch"
+                                   Icon="{ui:SymbolIcon Grid24}"
+                                   Content="SFP Inventory CSV"/>
 
-                            <ui:Button Command="{Binding ExportCsvCommand}"
-                                       CommandParameter="switches"
-                                       IsEnabled="{Binding HasResults}"
-                                       Appearance="Secondary"
-                                       Height="34"
-                                       Padding="14,0"
-                                       Margin="0,0,0,0"
-                                       Icon="{ui:SymbolIcon Table24}"
-                                       Content="Switch CSV"/>
-                        </WrapPanel>
+                        <ui:Button Grid.Column="4"
+                                   Command="{Binding ExportCsvCommand}"
+                                   CommandParameter="switches"
+                                   IsEnabled="{Binding HasResults}"
+                                   Appearance="Secondary"
+                                   Height="36"
+                                   Margin="4,0,0,0"
+                                   HorizontalAlignment="Stretch"
+                                   Icon="{ui:SymbolIcon Table24}"
+                                   Content="Switch CSV"/>
                     </Grid>
                 </Grid>
             </ui:Card>
