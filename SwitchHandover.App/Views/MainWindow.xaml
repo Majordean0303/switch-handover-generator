@@ -1,0 +1,779 @@
+<ui:FluentWindow x:Class="SwitchHandover.App.Views.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+        xmlns:vm="clr-namespace:SwitchHandover.App.ViewModels"
+        mc:Ignorable="d"
+        Title="{Binding ApplicationTitle}"
+        Height="860" Width="1280"
+        MinHeight="680" MinWidth="1020"
+        WindowStartupLocation="CenterScreen"
+        ExtendsContentIntoTitleBar="True"
+        Icon="pack://application:,,,/Assets/app.ico"
+        WindowBackdropType="Mica"
+        Foreground="{DynamicResource TextFillColorPrimaryBrush}">
+
+    <ui:FluentWindow.Resources>
+        <!-- Dedicated Consistent Gradient Analyze Action Button Style -->
+        <Style x:Key="AnalyzeActionButtonStyle" TargetType="ui:Button">
+            <Setter Property="Background">
+                <Setter.Value>
+                    <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                        <GradientStop Color="#0284C7" Offset="0"/>
+                        <GradientStop Color="#0EA5E9" Offset="1"/>
+                    </LinearGradientBrush>
+                </Setter.Value>
+            </Setter>
+            <Setter Property="Foreground" Value="#FFFFFF"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="CornerRadius" Value="8"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background">
+                        <Setter.Value>
+                            <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                <GradientStop Color="#0369A1" Offset="0"/>
+                                <GradientStop Color="#0284C7" Offset="1"/>
+                            </LinearGradientBrush>
+                        </Setter.Value>
+                    </Setter>
+                </Trigger>
+                <Trigger Property="IsEnabled" Value="False">
+                    <Setter Property="Opacity" Value="0.6"/>
+                    <Setter Property="Cursor" Value="Arrow"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+    </ui:FluentWindow.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <!-- ╔══════════════════════════════════════════════════════════════╗ -->
+        <!-- ║ TitleBar & Window Controls                                   ║ -->
+        <!-- ╚══════════════════════════════════════════════════════════════╝ -->
+        <Grid Grid.Row="0">
+            <ui:TitleBar Title="{Binding ApplicationTitle}" CloseWindowByDoubleClickOnIcon="True">
+                <ui:TitleBar.Icon>
+                    <ui:ImageIcon Source="pack://application:,,,/Assets/app_64.png" />
+                </ui:TitleBar.Icon>
+                <ui:TitleBar.TrailingContent>
+                    <!-- Theme toggle button -->
+                    <ui:Button Appearance="Secondary" 
+                               BorderThickness="1"
+                               BorderBrush="{DynamicResource SurfaceStrokeColorDefaultBrush}"
+                               Background="{DynamicResource SubtleFillColorSecondaryBrush}"
+                               CornerRadius="14"
+                               Height="30"
+                               Padding="12,0"
+                               Cursor="Hand"
+                               Margin="0,0,16,0"
+                               Command="{Binding ToggleThemeCommand}"
+                               ToolTip="Switch between Dark and Light Mode">
+                        <StackPanel Orientation="Horizontal">
+                            <ui:SymbolIcon Symbol="{Binding ThemeSymbol}" Margin="0,0,6,0" FontSize="14" Foreground="{DynamicResource AccentFillColorDefaultBrush}"/>
+                            <TextBlock Text="{Binding ThemeButtonText}" VerticalAlignment="Center" FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
+                        </StackPanel>
+                    </ui:Button>
+                </ui:TitleBar.TrailingContent>
+            </ui:TitleBar>
+
+            <!-- Global Progressive Top Progress Bar -->
+            <ProgressBar VerticalAlignment="Bottom" Height="3" IsIndeterminate="True"
+                         Foreground="{DynamicResource AccentFillColorDefaultBrush}"
+                         Background="Transparent" BorderThickness="0"
+                         Visibility="{Binding IsProcessing, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+        </Grid>
+
+        <!-- ╔══════════════════════════════════════════════════════════════╗ -->
+        <!-- ║ Main Content Layout                                          ║ -->
+        <!-- ╚══════════════════════════════════════════════════════════════╝ -->
+        <Grid Grid.Row="1" Margin="24,12,24,20">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" /> <!-- Parameter Cards -->
+                <RowDefinition Height="Auto" /> <!-- Primary Action & Options -->
+                <RowDefinition Height="*" />    <!-- Unified Segmented Table / Log Viewer -->
+                <RowDefinition Height="Auto" /> <!-- Export Toolbar -->
+            </Grid.RowDefinitions>
+
+            <!-- 1. Input Mode & Parameter Cards -->
+            <StackPanel Grid.Row="0" Margin="0,0,0,14">
+                <!-- Mode Selector Pill Bar -->
+                <Border HorizontalAlignment="Center"
+                        Background="{DynamicResource SubtleFillColorSecondaryBrush}"
+                        BorderBrush="{DynamicResource SurfaceStrokeColorDefaultBrush}"
+                        BorderThickness="1"
+                        CornerRadius="10"
+                        Padding="4"
+                        Margin="0,0,0,10">
+                    <StackPanel Orientation="Horizontal">
+                        <RadioButton GroupName="InputModes" Content="📁 Offline Configuration Logs"
+                                     IsChecked="{Binding InputModeIndex, Converter={StaticResource IndexToBoolConverter}, ConverterParameter=0}"
+                                     Style="{StaticResource PillRadioStyle}"/>
+                        <RadioButton GroupName="InputModes" Content="⚡ Live Discovery (SSH &amp; CDP)"
+                                     IsChecked="{Binding InputModeIndex, Converter={StaticResource IndexToBoolConverter}, ConverterParameter=1}"
+                                     Style="{StaticResource PillRadioStyle}"/>
+                    </StackPanel>
+                </Border>
+
+                <!-- Parameter Card: Mode 0 = Offline Files -->
+                <ui:Card Padding="18"
+                         Visibility="{Binding InputModeIndex, Converter={StaticResource IndexToVisibilityConverter}, ConverterParameter=0}">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="2*" />
+                            <ColumnDefinition Width="1.5*" />
+                            <ColumnDefinition Width="1.5*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+
+                        <!-- Site Location -->
+                        <StackPanel Grid.Column="0" Margin="0,0,16,0">
+                            <TextBlock Text="SITE LOCATION *" FontWeight="SemiBold" FontSize="11" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,0,0,6"/>
+                            <ui:TextBox Text="{Binding SiteLocation, UpdateSourceTrigger=PropertyChanged}"
+                                        PlaceholderText="e.g. Mumbai, DataCenter 1"
+                                        Icon="{ui:SymbolIcon Location24}"/>
+                        </StackPanel>
+
+                        <!-- Mgmt VLAN -->
+                        <StackPanel Grid.Column="1" Margin="0,0,16,0">
+                            <TextBlock Text="MANAGEMENT VLAN" FontWeight="SemiBold" FontSize="11" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,0,0,6"/>
+                            <ui:TextBox Text="{Binding MgmtVlan, UpdateSourceTrigger=PropertyChanged}"
+                                        PlaceholderText="Optional (e.g. 100)"
+                                        Icon="{ui:SymbolIcon NetworkCheck24}"/>
+                        </StackPanel>
+
+                        <!-- Location Type -->
+                        <StackPanel Grid.Column="2" Margin="0,0,16,0">
+                            <TextBlock Text="LOCATION TYPE" FontWeight="SemiBold" FontSize="11" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,0,0,6"/>
+                            <ComboBox ItemsSource="{Binding LocationTypes}"
+                                      SelectedItem="{Binding LocationType}"
+                                      Height="36"
+                                      VerticalAlignment="Center"/>
+                        </StackPanel>
+
+                        <!-- Browse Files -->
+                        <StackPanel Grid.Column="3" VerticalAlignment="Center">
+                            <TextBlock Text="CONFIG / LOG FILES" FontWeight="SemiBold" FontSize="11" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,0,0,6"/>
+                            <StackPanel Orientation="Horizontal">
+                                <ui:Button Command="{Binding BrowseFilesCommand}"
+                                           Appearance="Secondary"
+                                           Height="36"
+                                           Padding="16,0"
+                                           Icon="{ui:SymbolIcon FolderOpen24}"
+                                           Content="Browse Files" />
+                                <TextBlock Text="{Binding SelectedFilesSummary}"
+                                           VerticalAlignment="Center"
+                                           Margin="12,0,0,0"
+                                           FontSize="12"
+                                           Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                            </StackPanel>
+                        </StackPanel>
+                    </Grid>
+                </ui:Card>
+
+                <!-- Parameter Card: Mode 1 = Live Discovery (SSH & CDP) -->
+                <ui:Card Padding="18"
+                         Visibility="{Binding InputModeIndex, Converter={StaticResource IndexToVisibilityConverter}, ConverterParameter=1}">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+
+                        <!-- Live Row 1: Site Metadata -->
+                        <Grid Grid.Row="0" Margin="0,0,0,12">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="2*"/>
+                                <ColumnDefinition Width="1.5*"/>
+                                <ColumnDefinition Width="1.5*"/>
+                            </Grid.ColumnDefinitions>
+
+                            <StackPanel Grid.Column="0" Margin="0,0,16,0">
+                                <TextBlock Text="SITE LOCATION *" FontWeight="SemiBold" FontSize="11" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,0,0,6"/>
+                                <ui:TextBox Text="{Binding SiteLocation, UpdateSourceTrigger=PropertyChanged}"
+                                            PlaceholderText="e.g. Mumbai, DataCenter 1"
+                                            Icon="{ui:SymbolIcon Location24}"/>
+                            </StackPanel>
+
+                            <StackPanel Grid.Column="1" Margin="0,0,16,0">
+                                <TextBlock Text="MANAGEMENT VLAN" FontWeight="SemiBold" FontSize="11" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,0,0,6"/>
+                                <ui:TextBox Text="{Binding MgmtVlan, UpdateSourceTrigger=PropertyChanged}"
+                                            PlaceholderText="Optional (e.g. 100)"
+                                            Icon="{ui:SymbolIcon NetworkCheck24}"/>
+                            </StackPanel>
+
+                            <StackPanel Grid.Column="2">
+                                <TextBlock Text="LOCATION TYPE" FontWeight="SemiBold" FontSize="11" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,0,0,6"/>
+                                <ComboBox ItemsSource="{Binding LocationTypes}"
+                                          SelectedItem="{Binding LocationType}"
+                                          Height="36"
+                                          VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Grid>
+
+                        <!-- Live Row 2: Target IPs & Credentials -->
+                        <Grid Grid.Row="1" Margin="0,0,0,12">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="2*"/>
+                                <ColumnDefinition Width="1.2*"/>
+                                <ColumnDefinition Width="1.2*"/>
+                                <ColumnDefinition Width="1.2*"/>
+                            </Grid.ColumnDefinitions>
+
+                            <StackPanel Grid.Column="0" Margin="0,0,16,0">
+                                <DockPanel LastChildFill="False" Margin="0,0,0,6">
+                                    <TextBlock DockPanel.Dock="Left" Text="TARGET SEED IP(S) *" FontWeight="SemiBold" FontSize="11" Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                                    <ui:Button DockPanel.Dock="Right" Command="{Binding ImportSeedIpsCommand}"
+                                               Appearance="Transparent" Padding="4,0" FontSize="11" Content="Import File..."/>
+                                </DockPanel>
+                                <ui:TextBox Text="{Binding TargetIps, UpdateSourceTrigger=PropertyChanged}"
+                                            PlaceholderText="e.g. 10.1.1.1, 10.1.1.2 or 10.10.0.1"
+                                            Icon="{ui:SymbolIcon Router24}"/>
+                            </StackPanel>
+
+                            <StackPanel Grid.Column="1" Margin="0,0,16,0">
+                                <TextBlock Text="SSH USERNAME *" FontWeight="SemiBold" FontSize="11" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,0,0,6"/>
+                                <ui:TextBox Text="{Binding SshUsername, UpdateSourceTrigger=PropertyChanged}"
+                                            PlaceholderText="admin / cisco"
+                                            Icon="{ui:SymbolIcon Person24}"/>
+                            </StackPanel>
+
+                            <StackPanel Grid.Column="2" Margin="0,0,16,0">
+                                <TextBlock Text="SSH PASSWORD *" FontWeight="SemiBold" FontSize="11" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,0,0,6"/>
+                                <ui:PasswordBox Password="{Binding SshPassword, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                PlaceholderText="Password"/>
+                            </StackPanel>
+
+                            <StackPanel Grid.Column="3">
+                                <TextBlock Text="ENABLE SECRET" FontWeight="SemiBold" FontSize="11" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,0,0,6"/>
+                                <ui:PasswordBox Password="{Binding SshSecret, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                PlaceholderText="Optional Secret"/>
+                            </StackPanel>
+                        </Grid>
+
+                        <!-- Live Row 3: Discovery Tuning -->
+                        <Grid Grid.Row="2">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+
+                            <CheckBox Grid.Column="0" Content="Recursive CDP / LLDP Neighbor Crawl"
+                                      IsChecked="{Binding EnableCdp}" Margin="0,0,24,0"/>
+                            <CheckBox Grid.Column="1" Content="Include Discovered Cisco Access Points"
+                                      IsChecked="{Binding IncludeAps}"
+                                      IsEnabled="{Binding EnableCdp}" Margin="0,0,24,0"/>
+                            <StackPanel Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                                <TextBlock Text="Subnet Filter (Optional):" VerticalAlignment="Center" FontSize="13" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,0,8,0"/>
+                                <ui:TextBox Text="{Binding SubnetFilter, UpdateSourceTrigger=PropertyChanged}"
+                                            PlaceholderText="e.g. 10.1.0.0/16" Width="150" Height="32" FontSize="12.5" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Grid>
+                    </Grid>
+                </ui:Card>
+            </StackPanel>
+
+            <!-- 2. Options and Action Row -->
+            <Grid Grid.Row="1" Margin="0,0,0,16">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <CheckBox Content="Extract SFP / Transceiver Inventory"
+                              IsChecked="{Binding GetSfps}"
+                              Margin="0,0,24,0"/>
+                    <CheckBox Content="Complete Port Configuration Report (All Physical Interfaces)"
+                              IsChecked="{Binding GetCompletePortConfig}"/>
+                </StackPanel>
+
+                <!-- Crystal-clear Analyze button with sharp contrast in both Dark and Light modes -->
+                <ui:Button Grid.Column="1"
+                           Command="{Binding GenerateCommand}"
+                           Style="{StaticResource AnalyzeActionButtonStyle}"
+                           Height="44"
+                           Padding="28,0">
+                    <StackPanel Orientation="Horizontal">
+                        <ui:SymbolIcon Symbol="Play24" FontSize="18" Foreground="#FFFFFF" Margin="0,0,10,0"/>
+                        <TextBlock Text="ANALYZE &amp; GENERATE HANDOVER" FontWeight="Bold" FontSize="13" Foreground="#FFFFFF" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </ui:Button>
+            </Grid>
+
+            <!-- 3. Segmented Navigation Pill View & Content Area (Disabled until run) -->
+            <Grid Grid.Row="2" Margin="0,0,0,14">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+
+                <!-- Unified Segmented Pill Filter Bar (Centered across window) -->
+                <Border Grid.Row="0"
+                        HorizontalAlignment="Center"
+                        Background="{DynamicResource SubtleFillColorSecondaryBrush}"
+                        BorderBrush="{DynamicResource SurfaceStrokeColorDefaultBrush}"
+                        BorderThickness="1"
+                        CornerRadius="10"
+                        Padding="4"
+                        Margin="0,0,0,12">
+                    <StackPanel Orientation="Horizontal">
+                        <RadioButton GroupName="Views" Content="Analysis Logs" IsChecked="{Binding SelectedViewIndex, Converter={StaticResource IndexToBoolConverter}, ConverterParameter=0}" Style="{StaticResource PillRadioStyle}"/>
+                        <RadioButton GroupName="Views" Content="Switch Details" IsChecked="{Binding SelectedViewIndex, Converter={StaticResource IndexToBoolConverter}, ConverterParameter=1}" Style="{StaticResource PillRadioStyle}" IsEnabled="{Binding HasResults}"/>
+                        <RadioButton GroupName="Views" Content="Port Mappings" IsChecked="{Binding SelectedViewIndex, Converter={StaticResource IndexToBoolConverter}, ConverterParameter=2}" Style="{StaticResource PillRadioStyle}" IsEnabled="{Binding HasResults}"/>
+                        <RadioButton GroupName="Views" Content="SFP Inventory" IsChecked="{Binding SelectedViewIndex, Converter={StaticResource IndexToBoolConverter}, ConverterParameter=3}" Style="{StaticResource PillRadioStyle}" IsEnabled="{Binding HasSfps}"/>
+                        <RadioButton GroupName="Views" Content="All Ports Config" IsChecked="{Binding SelectedViewIndex, Converter={StaticResource IndexToBoolConverter}, ConverterParameter=4}" Style="{StaticResource PillRadioStyle}" IsEnabled="{Binding HasCompletePorts}"/>
+                    </StackPanel>
+                </Border>
+
+                <!-- View Switcher Host Card (Fills entire available space) -->
+                <ui:Card Grid.Row="1"
+                         HorizontalAlignment="Stretch"
+                         VerticalAlignment="Stretch"
+                         Padding="12">
+                    <Grid HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
+                        <!-- ================= STANDBY GRAPHICS OVERLAY ================= -->
+                        <Grid Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+                              Panel.ZIndex="10"
+                              HorizontalAlignment="Stretch"
+                              VerticalAlignment="Stretch"
+                              Visibility="{Binding HasResults, Converter={StaticResource InverseBooleanToVisibilityConverter}}">
+                            <Grid HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Margin="16,12,16,16">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="*"/>
+                                </Grid.RowDefinitions>
+
+                                <!-- Top Hero / Status Section -->
+                                <StackPanel Grid.Row="0" HorizontalAlignment="Center" Margin="0,4,0,16">
+                                    <Border Width="64" Height="64" CornerRadius="32"
+                                            Background="{DynamicResource SubtleFillColorTertiaryBrush}"
+                                            BorderBrush="{DynamicResource SurfaceStrokeColorDefaultBrush}"
+                                            BorderThickness="1"
+                                            HorizontalAlignment="Center" Margin="0,0,0,10">
+                                        <ui:SymbolIcon Symbol="Router24" FontSize="30" Foreground="{DynamicResource AccentFillColorDefaultBrush}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                    </Border>
+                                    <TextBlock Text="Standby — Ready for Analysis"
+                                               FontSize="20" FontWeight="Bold"
+                                               HorizontalAlignment="Center" Margin="0,0,0,4"
+                                               Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
+                                    <TextBlock Text="Specify your Site Location and browse Cisco configuration logs above, then click 'Analyze &amp; Generate Handover'."
+                                               FontSize="13" Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                               HorizontalAlignment="Center" TextAlignment="Center" Margin="0,0,0,0"/>
+                                </StackPanel>
+
+                                <!-- 3-Column Feature Cards Layout (Fills remaining height and full width) -->
+                                <Grid Grid.Row="1" Margin="0" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="14"/>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="14"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+
+                                    <!-- Feature Card 1: Switch Stacks & Hardware -->
+                                    <Border Grid.Column="0"
+                                            Background="{DynamicResource SubtleFillColorSecondaryBrush}"
+                                            BorderBrush="{DynamicResource SurfaceStrokeColorDefaultBrush}"
+                                            BorderThickness="1"
+                                            CornerRadius="10"
+                                            Padding="18,16"
+                                            HorizontalAlignment="Stretch"
+                                            VerticalAlignment="Stretch">
+                                        <Grid>
+                                            <Grid.RowDefinitions>
+                                                <RowDefinition Height="Auto"/>
+                                                <RowDefinition Height="*"/>
+                                                <RowDefinition Height="Auto"/>
+                                            </Grid.RowDefinitions>
+                                            <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,10">
+                                                <Border Width="32" Height="32" CornerRadius="6"
+                                                        Background="{DynamicResource SubtleFillColorTertiaryBrush}"
+                                                        Margin="0,0,10,0">
+                                                    <ui:SymbolIcon Symbol="Router24" FontSize="16" Foreground="{DynamicResource AccentFillColorDefaultBrush}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                </Border>
+                                                <TextBlock Text="Chassis &amp; Switch Stacks" FontWeight="SemiBold" FontSize="14" VerticalAlignment="Center" Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
+                                            </StackPanel>
+                                            <TextBlock Grid.Row="1"
+                                                       Text="Extracts multi-member switch stacks (Catalyst 9200, 9300, 3850), member roles, serial numbers, base MACs, and power supply redundancy status."
+                                                       FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                                       TextWrapping="Wrap" LineHeight="18" Margin="0,0,0,12"/>
+                                            <WrapPanel Grid.Row="2" Orientation="Horizontal" VerticalAlignment="Bottom">
+                                                <Border Background="{DynamicResource SubtleFillColorTertiaryBrush}" CornerRadius="4" Padding="6,3" Margin="0,0,6,4">
+                                                    <TextBlock Text="Multi-Stack" FontSize="10" Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                                                </Border>
+                                                <Border Background="{DynamicResource SubtleFillColorTertiaryBrush}" CornerRadius="4" Padding="6,3" Margin="0,0,6,4">
+                                                    <TextBlock Text="Serials &amp; MACs" FontSize="10" Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                                                </Border>
+                                                <Border Background="{DynamicResource SubtleFillColorTertiaryBrush}" CornerRadius="4" Padding="6,3" Margin="0,0,0,4">
+                                                    <TextBlock Text="PSU Health" FontSize="10" Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                                                </Border>
+                                            </WrapPanel>
+                                        </Grid>
+                                    </Border>
+
+                                    <!-- Feature Card 2: Port & Topology Intelligence -->
+                                    <Border Grid.Column="2"
+                                            Background="{DynamicResource SubtleFillColorSecondaryBrush}"
+                                            BorderBrush="{DynamicResource SurfaceStrokeColorDefaultBrush}"
+                                            BorderThickness="1"
+                                            CornerRadius="10"
+                                            Padding="18,16"
+                                            HorizontalAlignment="Stretch"
+                                            VerticalAlignment="Stretch">
+                                        <Grid>
+                                            <Grid.RowDefinitions>
+                                                <RowDefinition Height="Auto"/>
+                                                <RowDefinition Height="*"/>
+                                                <RowDefinition Height="Auto"/>
+                                            </Grid.RowDefinitions>
+                                            <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,10">
+                                                <Border Width="32" Height="32" CornerRadius="6"
+                                                        Background="{DynamicResource SubtleFillColorTertiaryBrush}"
+                                                        Margin="0,0,10,0">
+                                                    <ui:SymbolIcon Symbol="NetworkCheck24" FontSize="16" Foreground="{DynamicResource AccentFillColorDefaultBrush}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                </Border>
+                                                <TextBlock Text="Port &amp; CDP Mapping" FontWeight="SemiBold" FontSize="14" VerticalAlignment="Center" Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
+                                            </StackPanel>
+                                            <TextBlock Grid.Row="1"
+                                                       Text="Discovers connected CDP neighbors, remote interfaces, device hostnames, access &amp; trunk VLAN modes, port speeds, and duplex states."
+                                                       FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                                       TextWrapping="Wrap" LineHeight="18" Margin="0,0,0,12"/>
+                                            <WrapPanel Grid.Row="2" Orientation="Horizontal" VerticalAlignment="Bottom">
+                                                <Border Background="{DynamicResource SubtleFillColorTertiaryBrush}" CornerRadius="4" Padding="6,3" Margin="0,0,6,4">
+                                                    <TextBlock Text="CDP Neighbors" FontSize="10" Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                                                </Border>
+                                                <Border Background="{DynamicResource SubtleFillColorTertiaryBrush}" CornerRadius="4" Padding="6,3" Margin="0,0,6,4">
+                                                    <TextBlock Text="VLAN Trunking" FontSize="10" Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                                                </Border>
+                                                <Border Background="{DynamicResource SubtleFillColorTertiaryBrush}" CornerRadius="4" Padding="6,3" Margin="0,0,0,4">
+                                                    <TextBlock Text="Speed/Duplex" FontSize="10" Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                                                </Border>
+                                            </WrapPanel>
+                                        </Grid>
+                                    </Border>
+
+                                    <!-- Feature Card 3: Optical SFP Transceivers & APs -->
+                                    <Border Grid.Column="4"
+                                            Background="{DynamicResource SubtleFillColorSecondaryBrush}"
+                                            BorderBrush="{DynamicResource SurfaceStrokeColorDefaultBrush}"
+                                            BorderThickness="1"
+                                            CornerRadius="10"
+                                            Padding="18,16"
+                                            HorizontalAlignment="Stretch"
+                                            VerticalAlignment="Stretch">
+                                        <Grid>
+                                            <Grid.RowDefinitions>
+                                                <RowDefinition Height="Auto"/>
+                                                <RowDefinition Height="*"/>
+                                                <RowDefinition Height="Auto"/>
+                                            </Grid.RowDefinitions>
+                                            <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,10">
+                                                <Border Width="32" Height="32" CornerRadius="6"
+                                                        Background="{DynamicResource SubtleFillColorTertiaryBrush}"
+                                                        Margin="0,0,10,0">
+                                                    <ui:SymbolIcon Symbol="DocumentTable24" FontSize="16" Foreground="{DynamicResource AccentFillColorDefaultBrush}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                </Border>
+                                                <TextBlock Text="SFP Optics &amp; Wireless APs" FontWeight="SemiBold" FontSize="14" VerticalAlignment="Center" Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
+                                            </StackPanel>
+                                            <TextBlock Grid.Row="1"
+                                                       Text="Classifies 10G/1G optical transceivers with In-Use vs Plugged status tracking, and parses Cisco Catalyst 9100 series Access Point configs."
+                                                       FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                                       TextWrapping="Wrap" LineHeight="18" Margin="0,0,0,12"/>
+                                            <WrapPanel Grid.Row="2" Orientation="Horizontal" VerticalAlignment="Bottom">
+                                                <Border Background="{DynamicResource SubtleFillColorTertiaryBrush}" CornerRadius="4" Padding="6,3" Margin="0,0,6,4">
+                                                    <TextBlock Text="In-Use Tracking" FontSize="10" Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                                                </Border>
+                                                <Border Background="{DynamicResource SubtleFillColorTertiaryBrush}" CornerRadius="4" Padding="6,3" Margin="0,0,6,4">
+                                                    <TextBlock Text="SFP &amp; SFP+" FontSize="10" Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                                                </Border>
+                                                <Border Background="{DynamicResource SubtleFillColorTertiaryBrush}" CornerRadius="4" Padding="6,3" Margin="0,0,0,4">
+                                                    <TextBlock Text="Catalyst 9100" FontSize="10" Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                                                </Border>
+                                            </WrapPanel>
+                                        </Grid>
+                                    </Border>
+                                </Grid>
+
+                            </Grid>
+                        </Grid>
+
+                        <!-- ================= DATA VIEWS (VISIBLE ONLY WHEN RESULTS AVAILABLE) ================= -->
+                        <Grid HorizontalAlignment="Stretch"
+                              VerticalAlignment="Stretch"
+                              Visibility="{Binding HasResults, Converter={StaticResource BooleanToVisibilityConverter}}">
+                            <!-- View 0: Logs -->
+                            <Grid Visibility="{Binding SelectedViewIndex, Converter={StaticResource IndexToVisibilityConverter}, ConverterParameter=0}"
+                              HorizontalAlignment="Stretch"
+                              VerticalAlignment="Stretch">
+                            <TextBox Text="{Binding LogText, Mode=OneWay}"
+                                     IsReadOnly="True"
+                                     FontFamily="Consolas"
+                                     FontSize="12"
+                                     HorizontalAlignment="Stretch"
+                                     VerticalAlignment="Stretch"
+                                     VerticalScrollBarVisibility="Auto"
+                                     HorizontalScrollBarVisibility="Auto"
+                                     Background="Transparent"
+                                     BorderThickness="0"
+                                     Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                     TextWrapping="Wrap"/>
+                        </Grid>
+
+                        <!-- View 1: Switch Details -->
+                        <Grid Visibility="{Binding SelectedViewIndex, Converter={StaticResource IndexToVisibilityConverter}, ConverterParameter=1}">
+                            <DataGrid ItemsSource="{Binding SwitchDetails}">
+                                <DataGrid.Columns>
+                                    <DataGridTextColumn Header="Location" Binding="{Binding Location}" Width="110"/>
+                                    <DataGridTextColumn Header="Location Type" Binding="{Binding LocationType}" Width="100"/>
+                                    <DataGridTextColumn Header="Hostname" Binding="{Binding Hostname}" Width="150"/>
+                                    <DataGridTextColumn Header="Stack Member" Binding="{Binding StackMember}" Width="110"/>
+                                    <DataGridTextColumn Header="IP Address" Binding="{Binding IpAddress}" Width="120"/>
+                                    <DataGridTextColumn Header="Device Type" Binding="{Binding DeviceType}" Width="140"/>
+                                    <DataGridTextColumn Header="Make" Binding="{Binding Make}" Width="80"/>
+                                    <DataGridTextColumn Header="Model" Binding="{Binding Model}" Width="140"/>
+                                    <DataGridTextColumn Header="Sr No." Binding="{Binding SrNo}" Width="130"/>
+                                    <DataGridTextColumn Header="Firmware Version" Binding="{Binding FirmwareVersion}" Width="130"/>
+                                    <DataGridTextColumn Header="Uptime" Binding="{Binding Uptime}" Width="160"/>
+                                    <DataGridTextColumn Header="Total Ports" Binding="{Binding TotalPorts}" Width="90"/>
+                                    <DataGridTextColumn Header="MAC Address" Binding="{Binding MacAddress}" Width="140"/>
+                                    <DataGridTextColumn Header="Default Gateway" Binding="{Binding DefaultGateway}" Width="120"/>
+                                    <DataGridTextColumn Header="NTP Server" Binding="{Binding NtpServer}" Width="120"/>
+                                    <DataGridTextColumn Header="Active PSUs" Binding="{Binding ActivePowerSupplies}" Width="90"/>
+                                </DataGrid.Columns>
+                            </DataGrid>
+                        </Grid>
+
+                        <!-- View 2: Port Mappings -->
+                        <Grid Visibility="{Binding SelectedViewIndex, Converter={StaticResource IndexToVisibilityConverter}, ConverterParameter=2}">
+                            <DataGrid ItemsSource="{Binding PortMappings}">
+                                <DataGrid.Columns>
+                                    <DataGridTextColumn Header="Location" Binding="{Binding Location}" Width="110"/>
+                                    <DataGridTextColumn Header="Location Type" Binding="{Binding LocationType}" Width="100"/>
+                                    <DataGridTextColumn Header="Device Type" Binding="{Binding DeviceType}" Width="90"/>
+                                    <DataGridTextColumn Header="Hostname" Binding="{Binding Hostname}" Width="140"/>
+                                    <DataGridTextColumn Header="Device IP" Binding="{Binding DeviceIp}" Width="110"/>
+                                    <DataGridTextColumn Header="Port No." Binding="{Binding PortNo}" Width="110"/>
+                                    <DataGridTextColumn Header="Description" Binding="{Binding Description}" Width="160"/>
+                                    <DataGridTextColumn Header="State" Binding="{Binding State}" Width="80"/>
+                                    <DataGridTextColumn Header="Mode" Binding="{Binding Mode}" Width="90"/>
+                                    <DataGridTextColumn Header="VLAN ID" Binding="{Binding VlanId}" Width="80"/>
+                                    <DataGridTextColumn Header="Neighbour Hostname" Binding="{Binding NeighbourHostname}" Width="180"/>
+                                    <DataGridTextColumn Header="Neighbour IP" Binding="{Binding NeighbourDeviceIp}" Width="130"/>
+                                    <DataGridTextColumn Header="Neighbour Port" Binding="{Binding NeighbourPortNo}" Width="120"/>
+                                </DataGrid.Columns>
+                            </DataGrid>
+                        </Grid>
+
+                        <!-- View 3: SFP Inventory -->
+                        <Grid Visibility="{Binding SelectedViewIndex, Converter={StaticResource IndexToVisibilityConverter}, ConverterParameter=3}">
+                            <DataGrid ItemsSource="{Binding SfpInventories}">
+                                <DataGrid.Columns>
+                                    <DataGridTextColumn Header="Location" Binding="{Binding Location}" Width="110"/>
+                                    <DataGridTextColumn Header="Location Type" Binding="{Binding LocationType}" Width="100"/>
+                                    <DataGridTextColumn Header="Hostname" Binding="{Binding Hostname}" Width="140"/>
+                                    <DataGridTextColumn Header="Device IP" Binding="{Binding DeviceIp}" Width="120"/>
+                                    <DataGridTextColumn Header="Interface" Binding="{Binding Interface}" Width="110"/>
+                                    <DataGridTextColumn Header="Description" Binding="{Binding Description}" Width="200"/>
+                                    <DataGridTextColumn Header="PID" Binding="{Binding Pid}" Width="140"/>
+                                    <DataGridTextColumn Header="Serial Number" Binding="{Binding SerialNumber}" Width="140"/>
+                                    <DataGridTextColumn Header="In Use" Binding="{Binding InUse}" Width="90"/>
+                                </DataGrid.Columns>
+                            </DataGrid>
+                        </Grid>
+
+                        <!-- View 4: All Ports Config -->
+                        <Grid Visibility="{Binding SelectedViewIndex, Converter={StaticResource IndexToVisibilityConverter}, ConverterParameter=4}">
+                            <DataGrid ItemsSource="{Binding CompletePortConfigs}">
+                                <DataGrid.Columns>
+                                    <DataGridTextColumn Header="Location" Binding="{Binding Location}" Width="110"/>
+                                    <DataGridTextColumn Header="Location Type" Binding="{Binding LocationType}" Width="100"/>
+                                    <DataGridTextColumn Header="Device Type" Binding="{Binding DeviceType}" Width="90"/>
+                                    <DataGridTextColumn Header="Hostname" Binding="{Binding Hostname}" Width="140"/>
+                                    <DataGridTextColumn Header="Device IP" Binding="{Binding DeviceIp}" Width="110"/>
+                                    <DataGridTextColumn Header="Port No." Binding="{Binding PortNo}" Width="110"/>
+                                    <DataGridTextColumn Header="Description" Binding="{Binding Description}" Width="160"/>
+                                    <DataGridTextColumn Header="State" Binding="{Binding State}" Width="80"/>
+                                    <DataGridTextColumn Header="Mode" Binding="{Binding Mode}" Width="90"/>
+                                    <DataGridTextColumn Header="VLAN ID" Binding="{Binding VlanId}" Width="80"/>
+                                    <DataGridTextColumn Header="Neighbour Hostname" Binding="{Binding NeighbourHostname}" Width="180"/>
+                                    <DataGridTextColumn Header="Neighbour IP" Binding="{Binding NeighbourDeviceIp}" Width="130"/>
+                                    <DataGridTextColumn Header="Neighbour Port" Binding="{Binding NeighbourPortNo}" Width="120"/>
+                                </DataGrid.Columns>
+                            </DataGrid>
+                        </Grid>
+                        <!-- End of Active Data Views -->
+                        </Grid>
+                    </Grid>
+                </ui:Card>
+            </Grid>
+
+            <!-- 4. Export Reports Card Toolbar (Excel & CSV) -->
+            <ui:Card Grid.Row="3" Margin="0,4,0,0" Padding="16,12">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <!-- Row 1: Excel Exports (Evenly Spaced Across Full Window Width) -->
+                    <Grid Grid.Row="0" Margin="0,0,0,10">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="130"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+
+                        <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                            <ui:SymbolIcon Symbol="DocumentTable24" FontSize="16" Foreground="{DynamicResource AccentFillColorDefaultBrush}" Margin="0,0,6,0"/>
+                            <TextBlock Text="EXCEL:" FontWeight="Bold" FontSize="11" Foreground="{DynamicResource TextFillColorSecondaryBrush}" VerticalAlignment="Center"/>
+                        </StackPanel>
+
+                        <ui:Button Grid.Column="1"
+                                   Command="{Binding ExportExcelCommand}"
+                                   CommandParameter="both"
+                                   IsEnabled="{Binding HasResults}"
+                                   Appearance="Secondary"
+                                   Height="36"
+                                   Margin="0,0,8,0"
+                                   HorizontalAlignment="Stretch"
+                                   Icon="{ui:SymbolIcon DocumentTable24}"
+                                   Content="Complete Handover (.xlsx)"
+                                   FontWeight="SemiBold"/>
+
+                        <ui:Button Grid.Column="2"
+                                   Command="{Binding ExportExcelCommand}"
+                                   CommandParameter="switches"
+                                   IsEnabled="{Binding HasResults}"
+                                   Appearance="Secondary"
+                                   Height="36"
+                                   Margin="4,0,8,0"
+                                   HorizontalAlignment="Stretch"
+                                   Icon="{ui:SymbolIcon Table24}"
+                                   Content="Switch Details (.xlsx)"/>
+
+                        <ui:Button Grid.Column="3"
+                                   Command="{Binding ExportExcelCommand}"
+                                   CommandParameter="ports"
+                                   IsEnabled="{Binding HasResults}"
+                                   Appearance="Secondary"
+                                   Height="36"
+                                   Margin="4,0,0,0"
+                                   HorizontalAlignment="Stretch"
+                                   Icon="{ui:SymbolIcon Connector24}"
+                                   Content="Port Mappings (.xlsx)"/>
+                    </Grid>
+
+                    <!-- Row 2: CSV Exports (Evenly Spaced Across Full Window Width) -->
+                    <Grid Grid.Row="1">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="130"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+
+                        <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                            <ui:SymbolIcon Symbol="ArrowExportRtl24" FontSize="16" Foreground="#10B981" Margin="0,0,6,0"/>
+                            <TextBlock Text="CSV:" FontWeight="Bold" FontSize="11" Foreground="{DynamicResource TextFillColorSecondaryBrush}" VerticalAlignment="Center"/>
+                        </StackPanel>
+
+                        <ui:Button Grid.Column="1"
+                                   Command="{Binding ExportCsvCommand}"
+                                   CommandParameter="ports"
+                                   IsEnabled="{Binding HasResults}"
+                                   Appearance="Secondary"
+                                   Height="36"
+                                   Margin="0,0,8,0"
+                                   HorizontalAlignment="Stretch"
+                                   Icon="{ui:SymbolIcon Connector24}"
+                                   Content="Port Mapping CSV"/>
+
+                        <ui:Button Grid.Column="2"
+                                   Command="{Binding ExportCsvCommand}"
+                                   CommandParameter="allports"
+                                   IsEnabled="{Binding HasCompletePorts}"
+                                   Appearance="Secondary"
+                                   Height="36"
+                                   Margin="4,0,8,0"
+                                   HorizontalAlignment="Stretch"
+                                   Icon="{ui:SymbolIcon DocumentTable24}"
+                                   Content="All Ports Config CSV"/>
+
+                        <ui:Button Grid.Column="3"
+                                   Command="{Binding ExportCsvCommand}"
+                                   CommandParameter="sfp"
+                                   IsEnabled="{Binding HasSfps}"
+                                   Appearance="Secondary"
+                                   Height="36"
+                                   Margin="4,0,8,0"
+                                   HorizontalAlignment="Stretch"
+                                   Icon="{ui:SymbolIcon Grid24}"
+                                   Content="SFP Inventory CSV"/>
+
+                        <ui:Button Grid.Column="4"
+                                   Command="{Binding ExportCsvCommand}"
+                                   CommandParameter="switches"
+                                   IsEnabled="{Binding HasResults}"
+                                   Appearance="Secondary"
+                                   Height="36"
+                                   Margin="4,0,0,0"
+                                   HorizontalAlignment="Stretch"
+                                   Icon="{ui:SymbolIcon Table24}"
+                                   Content="Switch CSV"/>
+                    </Grid>
+                </Grid>
+            </ui:Card>
+        </Grid>
+
+        <!-- ================= MODAL LOADING SCREEN OVERLAY ================= -->
+        <Grid Grid.Row="0" Grid.RowSpan="2"
+              Background="#B0000000"
+              Visibility="{Binding IsProcessing, Converter={StaticResource BooleanToVisibilityConverter}}"
+              Panel.ZIndex="1000">
+            <Border Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+                    BorderBrush="{DynamicResource SurfaceStrokeColorDefaultBrush}"
+                    BorderThickness="1"
+                    CornerRadius="14"
+                    Padding="32"
+                    MaxWidth="460"
+                    MaxHeight="260"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center">
+                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                    <ui:ProgressRing IsIndeterminate="True"
+                                     Width="56" Height="56"
+                                     Foreground="{DynamicResource AccentFillColorDefaultBrush}"
+                                     HorizontalAlignment="Center" Margin="0,0,0,20"/>
+                    <TextBlock Text="Parsing &amp; Analyzing Configurations..."
+                               FontSize="18" FontWeight="Bold"
+                               HorizontalAlignment="Center" Margin="0,0,0,8"
+                               Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
+                    <TextBlock Text="{Binding StatusMessage}"
+                               FontSize="13"
+                               Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                               HorizontalAlignment="Center" TextAlignment="Center"/>
+                    <TextBlock Text="Extracting switch stacks, transceivers, interfaces &amp; neighbor mappings"
+                               FontSize="11" FontStyle="Italic"
+                               Foreground="{DynamicResource TextFillColorTertiaryBrush}"
+                               HorizontalAlignment="Center" Margin="0,10,0,0"/>
+                </StackPanel>
+            </Border>
+        </Grid>
+
+        <!-- Notification host -->
+        <ui:SnackbarPresenter Grid.Row="1" x:Name="SnackbarPresenter" />
+    </Grid>
+</ui:FluentWindow>
