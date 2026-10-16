@@ -1,0 +1,15 @@
+# .NET build artifacts
+bin/
+obj/
+dist-csharp/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Python artifacts
+__pycache__/
+*.py[cod]
+build/
+dist/
+*.spec
