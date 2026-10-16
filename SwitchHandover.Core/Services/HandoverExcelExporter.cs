@@ -1,3 +1,4 @@
+using System.Text;
 using ClosedXML.Excel;
 using SwitchHandover.Core.Models;
 
@@ -121,6 +122,81 @@ public static class HandoverExcelExporter
         }
 
         workbook.SaveAs(filePath);
+    }
+
+    public static void ExportCsv(
+        string filePath,
+        string csvType, // "switches", "ports", "sfp", "allports"
+        IEnumerable<SwitchDetails> switchDetails,
+        IEnumerable<PortMapping> portMappings,
+        IEnumerable<SfpInventory>? sfps = null,
+        IEnumerable<PortMapping>? completePorts = null)
+    {
+        var sb = new StringBuilder();
+
+        switch (csvType)
+        {
+            case "switches":
+                sb.AppendLine(string.Join(",", SwitchCols));
+                foreach (var s in switchDetails)
+                {
+                    sb.AppendLine(CsvRow(
+                        s.Location, s.LocationType, s.Hostname, s.StackMember,
+                        s.IpAddress, s.DeviceType, s.Make, s.Model, s.SrNo,
+                        s.FirmwareVersion, s.Uptime, s.TotalPorts, s.MacAddress,
+                        s.DefaultGateway, s.NtpServer, s.ActivePowerSupplies
+                    ));
+                }
+                break;
+
+            case "ports":
+                sb.AppendLine(string.Join(",", PortCols));
+                foreach (var p in portMappings)
+                {
+                    sb.AppendLine(CsvRow(
+                        p.Location, p.LocationType, p.DeviceType, p.Hostname, p.DeviceIp,
+                        p.PortNo, p.Description, p.State, p.Mode, p.VlanId,
+                        p.NeighbourHostname, p.NeighbourDeviceIp, p.NeighbourPortNo
+                    ));
+                }
+                break;
+
+            case "sfp":
+                sb.AppendLine(string.Join(",", SfpCols));
+                if (sfps != null)
+                {
+                    foreach (var sfp in sfps)
+                    {
+                        sb.AppendLine(CsvRow(
+                            sfp.Location, sfp.LocationType, sfp.Hostname, sfp.DeviceIp,
+                            sfp.Interface, sfp.Description, sfp.Pid, sfp.SerialNumber, sfp.InUse
+                        ));
+                    }
+                }
+                break;
+
+            case "allports":
+                sb.AppendLine(string.Join(",", PortCols));
+                if (completePorts != null)
+                {
+                    foreach (var p in completePorts)
+                    {
+                        sb.AppendLine(CsvRow(
+                            p.Location, p.LocationType, p.DeviceType, p.Hostname, p.DeviceIp,
+                            p.PortNo, p.Description, p.State, p.Mode, p.VlanId,
+                            p.NeighbourHostname, p.NeighbourDeviceIp, p.NeighbourPortNo
+                        ));
+                    }
+                }
+                break;
+        }
+
+        File.WriteAllText(filePath, sb.ToString(), Encoding.UTF8);
+    }
+
+    private static string CsvRow(params string[] values)
+    {
+        return string.Join(",", values.Select(v => $"\"{v?.Replace("\"", "\"\"") ?? ""}\""));
     }
 
     private static void WritePortRow(IXLWorksheet ws, int row, PortMapping item)

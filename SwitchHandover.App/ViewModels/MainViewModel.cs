@@ -284,4 +284,57 @@ public partial class MainViewModel : ObservableObject
             }
         }
     }
+
+    [RelayCommand]
+    private void ExportCsv(string csvType)
+    {
+        string defaultName = csvType switch
+        {
+            "switches" => "Switch_Details.csv",
+            "ports" => "Port_Mapping.csv",
+            "sfp" => "SFP_Inventory.csv",
+            "allports" => "Complete_Port_Config.csv",
+            _ => "Handover_Report.csv"
+        };
+
+        var dialog = new SaveFileDialog
+        {
+            Title = "Save CSV Report",
+            Filter = "CSV File (*.csv)|*.csv",
+            FileName = defaultName
+        };
+
+        if (dialog.ShowDialog() == true)
+        {
+            try
+            {
+                HandoverExcelExporter.ExportCsv(
+                    dialog.FileName,
+                    csvType,
+                    SwitchDetails,
+                    PortMappings,
+                    SfpInventories,
+                    CompletePortConfigs);
+
+                AppendLog($"✔ Exported CSV file to: {dialog.FileName}");
+                _snackbarService.Show(
+                    "CSV Export Successful",
+                    $"Saved CSV to {Path.GetFileName(dialog.FileName)}",
+                    ControlAppearance.Success,
+                    new SymbolIcon(SymbolRegular.Checkmark24),
+                    TimeSpan.FromSeconds(4));
+            }
+            catch (Exception ex)
+            {
+                AppendLog($"✘ CSV Export failed: {ex.Message}");
+                _snackbarService.Show(
+                    "Export Error",
+                    ex.Message,
+                    ControlAppearance.Danger,
+                    new SymbolIcon(SymbolRegular.ErrorCircle24),
+                    TimeSpan.FromSeconds(5));
+            }
+        }
+    }
 }
+

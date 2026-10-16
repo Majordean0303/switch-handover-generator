@@ -7,13 +7,47 @@
         xmlns:vm="clr-namespace:SwitchHandover.App.ViewModels"
         mc:Ignorable="d"
         Title="{Binding ApplicationTitle}"
-        Height="840" Width="1260"
-        MinHeight="680" MinWidth="980"
+        Height="860" Width="1280"
+        MinHeight="680" MinWidth="1020"
         WindowStartupLocation="CenterScreen"
         ExtendsContentIntoTitleBar="True"
         Icon="pack://application:,,,/Assets/app.ico"
         WindowBackdropType="Mica"
         Foreground="{DynamicResource TextFillColorPrimaryBrush}">
+
+    <ui:FluentWindow.Resources>
+        <!-- Dedicated Consistent Gradient Analyze Action Button Style -->
+        <Style x:Key="AnalyzeActionButtonStyle" TargetType="ui:Button">
+            <Setter Property="Background">
+                <Setter.Value>
+                    <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                        <GradientStop Color="#0284C7" Offset="0"/>
+                        <GradientStop Color="#0EA5E9" Offset="1"/>
+                    </LinearGradientBrush>
+                </Setter.Value>
+            </Setter>
+            <Setter Property="Foreground" Value="#FFFFFF"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="CornerRadius" Value="8"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background">
+                        <Setter.Value>
+                            <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                <GradientStop Color="#0369A1" Offset="0"/>
+                                <GradientStop Color="#0284C7" Offset="1"/>
+                            </LinearGradientBrush>
+                        </Setter.Value>
+                    </Setter>
+                </Trigger>
+                <Trigger Property="IsEnabled" Value="False">
+                    <Setter Property="Opacity" Value="0.6"/>
+                    <Setter Property="Cursor" Value="Arrow"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+    </ui:FluentWindow.Resources>
 
     <Grid>
         <Grid.RowDefinitions>
@@ -30,7 +64,7 @@
                     <ui:ImageIcon Source="pack://application:,,,/Assets/app_64.png" />
                 </ui:TitleBar.Icon>
                 <ui:TitleBar.TrailingContent>
-                    <!-- Robust theme toggle button that looks great in both Dark and Light mode -->
+                    <!-- Theme toggle button -->
                     <ui:Button Appearance="Secondary" 
                                BorderThickness="1"
                                BorderBrush="{DynamicResource SurfaceStrokeColorDefaultBrush}"
@@ -138,14 +172,17 @@
                               IsChecked="{Binding GetCompletePortConfig}"/>
                 </StackPanel>
 
+                <!-- Crystal-clear Analyze button with sharp contrast in both Dark and Light modes -->
                 <ui:Button Grid.Column="1"
                            Command="{Binding GenerateCommand}"
-                           Appearance="Primary"
-                           Height="42"
-                           Padding="26,0"
-                           Icon="{ui:SymbolIcon Play24}"
-                           Content="ANALYZE &amp; GENERATE HANDOVER"
-                           FontWeight="Bold"/>
+                           Style="{StaticResource AnalyzeActionButtonStyle}"
+                           Height="44"
+                           Padding="28,0">
+                    <StackPanel Orientation="Horizontal">
+                        <ui:SymbolIcon Symbol="Play24" FontSize="18" Foreground="#FFFFFF" Margin="0,0,10,0"/>
+                        <TextBlock Text="ANALYZE &amp; GENERATE HANDOVER" FontWeight="Bold" FontSize="13" Foreground="#FFFFFF" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </ui:Button>
             </Grid>
 
             <!-- 3. Segmented Navigation Pill View & Content Area (Disabled until run) -->
@@ -156,7 +193,6 @@
                 </Grid.RowDefinitions>
 
                 <!-- Unified Segmented Pill Filter Bar -->
-                <!-- Enabled only when HasResults is true, or user can view Analysis Logs -->
                 <Border Grid.Row="0"
                         HorizontalAlignment="Left"
                         Background="{DynamicResource SubtleFillColorSecondaryBrush}"
@@ -178,11 +214,9 @@
                 <ui:Card Grid.Row="1" Padding="12">
                     <Grid>
                         <!-- ================= STANDBY GRAPHICS OVERLAY ================= -->
-                        <!-- Displayed before any analysis is run (HasResults == false and SelectedViewIndex != 0) -->
                         <Grid Background="Transparent"
                               Panel.ZIndex="10"
                               Visibility="{Binding HasResults, Converter={StaticResource InverseBooleanToVisibilityConverter}}">
-                            <!-- Only show Standby graphics if not looking at Logs or if logs are empty -->
                             <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Margin="20">
                                 <Border Width="72" Height="72" CornerRadius="36"
                                         Background="{DynamicResource SubtleFillColorTertiaryBrush}"
@@ -313,52 +347,84 @@
                 </ui:Card>
             </Grid>
 
-            <!-- 4. Export Buttons Toolbar -->
-            <Grid Grid.Row="3">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="*" />
-                </Grid.ColumnDefinitions>
-
-                <ui:Button Grid.Column="0"
-                           Command="{Binding ExportExcelCommand}"
-                           CommandParameter="switches"
-                           IsEnabled="{Binding HasResults}"
-                           Appearance="Secondary"
-                           Height="42"
-                           Margin="0,0,8,0"
-                           HorizontalAlignment="Stretch"
-                           Icon="{ui:SymbolIcon Table24}"
-                           Content="Export Switch Details (.xlsx)"/>
-
-                <ui:Button Grid.Column="1"
-                           Command="{Binding ExportExcelCommand}"
-                           CommandParameter="ports"
-                           IsEnabled="{Binding HasResults}"
-                           Appearance="Secondary"
-                           Height="42"
-                           Margin="4,0,4,0"
-                           HorizontalAlignment="Stretch"
-                           Icon="{ui:SymbolIcon Connector24}"
-                           Content="Export Port Mappings (.xlsx)"/>
-
-                <ui:Button Grid.Column="2"
-                           Command="{Binding ExportExcelCommand}"
+            <!-- 4. Export Buttons Toolbar (Excel & CSV) -->
+            <WrapPanel Grid.Row="3" Margin="0,4,0,0" VerticalAlignment="Center">
+                <!-- Excel Exports -->
+                <ui:Button Command="{Binding ExportExcelCommand}"
                            CommandParameter="both"
                            IsEnabled="{Binding HasResults}"
                            Appearance="Primary"
-                           Height="42"
-                           Margin="8,0,0,0"
-                           HorizontalAlignment="Stretch"
+                           Height="38"
+                           Padding="18,0"
+                           Margin="0,0,10,8"
                            Icon="{ui:SymbolIcon DocumentTable24}"
                            Content="Export Complete Handover (.xlsx)"
                            FontWeight="SemiBold"/>
-            </Grid>
+
+                <ui:Button Command="{Binding ExportExcelCommand}"
+                           CommandParameter="switches"
+                           IsEnabled="{Binding HasResults}"
+                           Appearance="Secondary"
+                           Height="38"
+                           Padding="14,0"
+                           Margin="0,0,10,8"
+                           Icon="{ui:SymbolIcon Table24}"
+                           Content="Export Switch Details (.xlsx)"/>
+
+                <ui:Button Command="{Binding ExportExcelCommand}"
+                           CommandParameter="ports"
+                           IsEnabled="{Binding HasResults}"
+                           Appearance="Secondary"
+                           Height="38"
+                           Padding="14,0"
+                           Margin="0,0,10,8"
+                           Icon="{ui:SymbolIcon Connector24}"
+                           Content="Export Port Mappings (.xlsx)"/>
+
+                <!-- CSV Exports -->
+                <ui:Button Command="{Binding ExportCsvCommand}"
+                           CommandParameter="ports"
+                           IsEnabled="{Binding HasResults}"
+                           Appearance="Secondary"
+                           Height="38"
+                           Padding="14,0"
+                           Margin="0,0,10,8"
+                           Icon="{ui:SymbolIcon ArrowExportRtl24}"
+                           Content="Export Port Mapping CSV"/>
+
+                <ui:Button Command="{Binding ExportCsvCommand}"
+                           CommandParameter="allports"
+                           IsEnabled="{Binding HasCompletePorts}"
+                           Appearance="Secondary"
+                           Height="38"
+                           Padding="14,0"
+                           Margin="0,0,10,8"
+                           Icon="{ui:SymbolIcon DocumentTable24}"
+                           Content="Export All Ports Config CSV"/>
+
+                <ui:Button Command="{Binding ExportCsvCommand}"
+                           CommandParameter="sfp"
+                           IsEnabled="{Binding HasSfps}"
+                           Appearance="Secondary"
+                           Height="38"
+                           Padding="14,0"
+                           Margin="0,0,10,8"
+                           Icon="{ui:SymbolIcon Grid24}"
+                           Content="Export SFP Inventory CSV"/>
+
+                <ui:Button Command="{Binding ExportCsvCommand}"
+                           CommandParameter="switches"
+                           IsEnabled="{Binding HasResults}"
+                           Appearance="Secondary"
+                           Height="38"
+                           Padding="14,0"
+                           Margin="0,0,0,8"
+                           Icon="{ui:SymbolIcon Table24}"
+                           Content="Export Switch CSV"/>
+            </WrapPanel>
         </Grid>
 
         <!-- ================= MODAL LOADING SCREEN OVERLAY ================= -->
-        <!-- Visible when IsProcessing is true -->
         <Grid Grid.Row="0" Grid.RowSpan="2"
               Background="#B0000000"
               Visibility="{Binding IsProcessing, Converter={StaticResource BooleanToVisibilityConverter}}"
