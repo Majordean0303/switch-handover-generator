@@ -210,32 +210,45 @@
                     </StackPanel>
                 </Border>
 
-                <!-- View Switcher Host Card -->
-                <ui:Card Grid.Row="1" Padding="12">
-                    <Grid>
+                <!-- View Switcher Host Card (Fills entire available space) -->
+                <ui:Card Grid.Row="1"
+                         HorizontalAlignment="Stretch"
+                         VerticalAlignment="Stretch"
+                         Padding="12">
+                    <Grid HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
                         <!-- ================= STANDBY GRAPHICS OVERLAY ================= -->
                         <Grid Background="Transparent"
                               Panel.ZIndex="10"
+                              HorizontalAlignment="Stretch"
+                              VerticalAlignment="Stretch"
                               Visibility="{Binding HasResults, Converter={StaticResource InverseBooleanToVisibilityConverter}}">
-                            <StackPanel HorizontalAlignment="Stretch" VerticalAlignment="Center" MaxWidth="1040" Margin="24,12">
-                                <!-- Top Hero / Status Section -->
-                                <Border Width="68" Height="68" CornerRadius="34"
-                                        Background="{DynamicResource SubtleFillColorTertiaryBrush}"
-                                        BorderBrush="{DynamicResource SurfaceStrokeColorDefaultBrush}"
-                                        BorderThickness="1"
-                                        HorizontalAlignment="Center" Margin="0,0,0,12">
-                                    <ui:SymbolIcon Symbol="Router24" FontSize="32" Foreground="{DynamicResource AccentFillColorDefaultBrush}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                </Border>
-                                <TextBlock Text="Standby — Ready for Analysis"
-                                           FontSize="20" FontWeight="Bold"
-                                           HorizontalAlignment="Center" Margin="0,0,0,6"
-                                           Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
-                                <TextBlock Text="Specify your Site Location and browse Cisco configuration logs above, then click 'Analyze &amp; Generate Handover'."
-                                           FontSize="13" Foreground="{DynamicResource TextFillColorSecondaryBrush}"
-                                           HorizontalAlignment="Center" TextAlignment="Center" MaxWidth="600" Margin="0,0,0,20"/>
+                            <Grid HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Margin="16,8">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="*"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
 
-                                <!-- 3-Column Feature Cards Layout -->
-                                <Grid Margin="0,0,0,16">
+                                <!-- Top Hero / Status Section -->
+                                <StackPanel Grid.Row="0" HorizontalAlignment="Center" Margin="0,4,0,16">
+                                    <Border Width="64" Height="64" CornerRadius="32"
+                                            Background="{DynamicResource SubtleFillColorTertiaryBrush}"
+                                            BorderBrush="{DynamicResource SurfaceStrokeColorDefaultBrush}"
+                                            BorderThickness="1"
+                                            HorizontalAlignment="Center" Margin="0,0,0,10">
+                                        <ui:SymbolIcon Symbol="Router24" FontSize="30" Foreground="{DynamicResource AccentFillColorDefaultBrush}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                    </Border>
+                                    <TextBlock Text="Standby — Ready for Analysis"
+                                               FontSize="20" FontWeight="Bold"
+                                               HorizontalAlignment="Center" Margin="0,0,0,4"
+                                               Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
+                                    <TextBlock Text="Specify your Site Location and browse Cisco configuration logs above, then click 'Analyze &amp; Generate Handover'."
+                                               FontSize="13" Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                               HorizontalAlignment="Center" TextAlignment="Center" Margin="0,0,0,0"/>
+                                </StackPanel>
+
+                                <!-- 3-Column Feature Cards Layout (Fills remaining height and full width) -->
+                                <Grid Grid.Row="1" Margin="0,0,0,14" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="*"/>
                                         <ColumnDefinition Width="14"/>
@@ -250,36 +263,38 @@
                                             BorderBrush="{DynamicResource SurfaceStrokeColorDefaultBrush}"
                                             BorderThickness="1"
                                             CornerRadius="10"
-                                            Padding="16,14">
+                                            Padding="18,16"
+                                            HorizontalAlignment="Stretch"
+                                            VerticalAlignment="Stretch">
                                         <Grid>
                                             <Grid.RowDefinitions>
                                                 <RowDefinition Height="Auto"/>
-                                                <RowDefinition Height="Auto"/>
+                                                <RowDefinition Height="*"/>
                                                 <RowDefinition Height="Auto"/>
                                             </Grid.RowDefinitions>
-                                            <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,8">
-                                                <Border Width="30" Height="30" CornerRadius="6"
+                                            <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,10">
+                                                <Border Width="32" Height="32" CornerRadius="6"
                                                         Background="{DynamicResource SubtleFillColorTertiaryBrush}"
                                                         Margin="0,0,10,0">
-                                                    <ui:SymbolIcon Symbol="Router24" FontSize="15" Foreground="{DynamicResource AccentFillColorDefaultBrush}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                    <ui:SymbolIcon Symbol="Router24" FontSize="16" Foreground="{DynamicResource AccentFillColorDefaultBrush}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                                 </Border>
-                                                <TextBlock Text="Chassis &amp; Switch Stacks" FontWeight="SemiBold" FontSize="13" VerticalAlignment="Center" Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
+                                                <TextBlock Text="Chassis &amp; Switch Stacks" FontWeight="SemiBold" FontSize="14" VerticalAlignment="Center" Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
                                             </StackPanel>
                                             <TextBlock Grid.Row="1"
-                                                       Text="Extracts multi-member switch stacks (Catalyst 9200, 9300, 3850), member roles, serial numbers, base MACs, and power supply redundancy."
-                                                       FontSize="11.5" Foreground="{DynamicResource TextFillColorSecondaryBrush}"
-                                                       TextWrapping="Wrap" LineHeight="17" Margin="0,0,0,12"/>
-                                            <StackPanel Grid.Row="2" Orientation="Horizontal">
-                                                <Border Background="{DynamicResource SubtleFillColorTertiaryBrush}" CornerRadius="4" Padding="6,2" Margin="0,0,6,0">
+                                                       Text="Extracts multi-member switch stacks (Catalyst 9200, 9300, 3850), member roles, serial numbers, base MACs, and power supply redundancy status."
+                                                       FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                                       TextWrapping="Wrap" LineHeight="18" Margin="0,0,0,12"/>
+                                            <WrapPanel Grid.Row="2" Orientation="Horizontal" VerticalAlignment="Bottom">
+                                                <Border Background="{DynamicResource SubtleFillColorTertiaryBrush}" CornerRadius="4" Padding="6,3" Margin="0,0,6,4">
                                                     <TextBlock Text="Multi-Stack" FontSize="10" Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
                                                 </Border>
-                                                <Border Background="{DynamicResource SubtleFillColorTertiaryBrush}" CornerRadius="4" Padding="6,2" Margin="0,0,6,0">
+                                                <Border Background="{DynamicResource SubtleFillColorTertiaryBrush}" CornerRadius="4" Padding="6,3" Margin="0,0,6,4">
                                                     <TextBlock Text="Serials &amp; MACs" FontSize="10" Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
                                                 </Border>
-                                                <Border Background="{DynamicResource SubtleFillColorTertiaryBrush}" CornerRadius="4" Padding="6,2">
+                                                <Border Background="{DynamicResource SubtleFillColorTertiaryBrush}" CornerRadius="4" Padding="6,3" Margin="0,0,0,4">
                                                     <TextBlock Text="PSU Health" FontSize="10" Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
                                                 </Border>
-                                            </StackPanel>
+                                            </WrapPanel>
                                         </Grid>
                                     </Border>
 
@@ -289,36 +304,38 @@
                                             BorderBrush="{DynamicResource SurfaceStrokeColorDefaultBrush}"
                                             BorderThickness="1"
                                             CornerRadius="10"
-                                            Padding="16,14">
+                                            Padding="18,16"
+                                            HorizontalAlignment="Stretch"
+                                            VerticalAlignment="Stretch">
                                         <Grid>
                                             <Grid.RowDefinitions>
                                                 <RowDefinition Height="Auto"/>
-                                                <RowDefinition Height="Auto"/>
+                                                <RowDefinition Height="*"/>
                                                 <RowDefinition Height="Auto"/>
                                             </Grid.RowDefinitions>
-                                            <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,8">
-                                                <Border Width="30" Height="30" CornerRadius="6"
+                                            <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,10">
+                                                <Border Width="32" Height="32" CornerRadius="6"
                                                         Background="{DynamicResource SubtleFillColorTertiaryBrush}"
                                                         Margin="0,0,10,0">
-                                                    <ui:SymbolIcon Symbol="NetworkCheck24" FontSize="15" Foreground="{DynamicResource AccentFillColorDefaultBrush}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                    <ui:SymbolIcon Symbol="NetworkCheck24" FontSize="16" Foreground="{DynamicResource AccentFillColorDefaultBrush}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                                 </Border>
-                                                <TextBlock Text="Port &amp; CDP Mapping" FontWeight="SemiBold" FontSize="13" VerticalAlignment="Center" Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
+                                                <TextBlock Text="Port &amp; CDP Mapping" FontWeight="SemiBold" FontSize="14" VerticalAlignment="Center" Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
                                             </StackPanel>
                                             <TextBlock Grid.Row="1"
                                                        Text="Discovers connected CDP neighbors, remote interfaces, device hostnames, access &amp; trunk VLAN modes, port speeds, and duplex states."
-                                                       FontSize="11.5" Foreground="{DynamicResource TextFillColorSecondaryBrush}"
-                                                       TextWrapping="Wrap" LineHeight="17" Margin="0,0,0,12"/>
-                                            <StackPanel Grid.Row="2" Orientation="Horizontal">
-                                                <Border Background="{DynamicResource SubtleFillColorTertiaryBrush}" CornerRadius="4" Padding="6,2" Margin="0,0,6,0">
+                                                       FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                                       TextWrapping="Wrap" LineHeight="18" Margin="0,0,0,12"/>
+                                            <WrapPanel Grid.Row="2" Orientation="Horizontal" VerticalAlignment="Bottom">
+                                                <Border Background="{DynamicResource SubtleFillColorTertiaryBrush}" CornerRadius="4" Padding="6,3" Margin="0,0,6,4">
                                                     <TextBlock Text="CDP Neighbors" FontSize="10" Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
                                                 </Border>
-                                                <Border Background="{DynamicResource SubtleFillColorTertiaryBrush}" CornerRadius="4" Padding="6,2" Margin="0,0,6,0">
+                                                <Border Background="{DynamicResource SubtleFillColorTertiaryBrush}" CornerRadius="4" Padding="6,3" Margin="0,0,6,4">
                                                     <TextBlock Text="VLAN Trunking" FontSize="10" Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
                                                 </Border>
-                                                <Border Background="{DynamicResource SubtleFillColorTertiaryBrush}" CornerRadius="4" Padding="6,2">
+                                                <Border Background="{DynamicResource SubtleFillColorTertiaryBrush}" CornerRadius="4" Padding="6,3" Margin="0,0,0,4">
                                                     <TextBlock Text="Speed/Duplex" FontSize="10" Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
                                                 </Border>
-                                            </StackPanel>
+                                            </WrapPanel>
                                         </Grid>
                                     </Border>
 
@@ -328,46 +345,50 @@
                                             BorderBrush="{DynamicResource SurfaceStrokeColorDefaultBrush}"
                                             BorderThickness="1"
                                             CornerRadius="10"
-                                            Padding="16,14">
+                                            Padding="18,16"
+                                            HorizontalAlignment="Stretch"
+                                            VerticalAlignment="Stretch">
                                         <Grid>
                                             <Grid.RowDefinitions>
                                                 <RowDefinition Height="Auto"/>
-                                                <RowDefinition Height="Auto"/>
+                                                <RowDefinition Height="*"/>
                                                 <RowDefinition Height="Auto"/>
                                             </Grid.RowDefinitions>
-                                            <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,8">
-                                                <Border Width="30" Height="30" CornerRadius="6"
+                                            <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,10">
+                                                <Border Width="32" Height="32" CornerRadius="6"
                                                         Background="{DynamicResource SubtleFillColorTertiaryBrush}"
                                                         Margin="0,0,10,0">
-                                                    <ui:SymbolIcon Symbol="DocumentTable24" FontSize="15" Foreground="{DynamicResource AccentFillColorDefaultBrush}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                    <ui:SymbolIcon Symbol="DocumentTable24" FontSize="16" Foreground="{DynamicResource AccentFillColorDefaultBrush}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                                 </Border>
-                                                <TextBlock Text="SFP Optics &amp; Wireless APs" FontWeight="SemiBold" FontSize="13" VerticalAlignment="Center" Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
+                                                <TextBlock Text="SFP Optics &amp; Wireless APs" FontWeight="SemiBold" FontSize="14" VerticalAlignment="Center" Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
                                             </StackPanel>
                                             <TextBlock Grid.Row="1"
                                                        Text="Classifies 10G/1G optical transceivers with In-Use vs Plugged status tracking, and parses Cisco Catalyst 9100 series Access Point configs."
-                                                       FontSize="11.5" Foreground="{DynamicResource TextFillColorSecondaryBrush}"
-                                                       TextWrapping="Wrap" LineHeight="17" Margin="0,0,0,12"/>
-                                            <StackPanel Grid.Row="2" Orientation="Horizontal">
-                                                <Border Background="{DynamicResource SubtleFillColorTertiaryBrush}" CornerRadius="4" Padding="6,2" Margin="0,0,6,0">
+                                                       FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                                       TextWrapping="Wrap" LineHeight="18" Margin="0,0,0,12"/>
+                                            <WrapPanel Grid.Row="2" Orientation="Horizontal" VerticalAlignment="Bottom">
+                                                <Border Background="{DynamicResource SubtleFillColorTertiaryBrush}" CornerRadius="4" Padding="6,3" Margin="0,0,6,4">
                                                     <TextBlock Text="In-Use Tracking" FontSize="10" Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
                                                 </Border>
-                                                <Border Background="{DynamicResource SubtleFillColorTertiaryBrush}" CornerRadius="4" Padding="6,2" Margin="0,0,6,0">
+                                                <Border Background="{DynamicResource SubtleFillColorTertiaryBrush}" CornerRadius="4" Padding="6,3" Margin="0,0,6,4">
                                                     <TextBlock Text="SFP &amp; SFP+" FontSize="10" Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
                                                 </Border>
-                                                <Border Background="{DynamicResource SubtleFillColorTertiaryBrush}" CornerRadius="4" Padding="6,2">
+                                                <Border Background="{DynamicResource SubtleFillColorTertiaryBrush}" CornerRadius="4" Padding="6,3" Margin="0,0,0,4">
                                                     <TextBlock Text="Catalyst 9100" FontSize="10" Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
                                                 </Border>
-                                            </StackPanel>
+                                            </WrapPanel>
                                         </Grid>
                                     </Border>
                                 </Grid>
 
                                 <!-- Quick Workflow Ribbon -->
-                                <Border Background="{DynamicResource SubtleFillColorSecondaryBrush}"
+                                <Border Grid.Row="2"
+                                        Background="{DynamicResource SubtleFillColorSecondaryBrush}"
                                         BorderBrush="{DynamicResource SurfaceStrokeColorDefaultBrush}"
                                         BorderThickness="1"
                                         CornerRadius="8"
-                                        Padding="16,10">
+                                        Padding="16,12"
+                                        HorizontalAlignment="Stretch">
                                     <Grid>
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="*"/>
@@ -397,15 +418,19 @@
                                         </StackPanel>
                                     </Grid>
                                 </Border>
-                            </StackPanel>
+                            </Grid>
                         </Grid>
 
                         <!-- View 0: Logs -->
-                        <Grid Visibility="{Binding SelectedViewIndex, Converter={StaticResource IndexToVisibilityConverter}, ConverterParameter=0}">
+                        <Grid Visibility="{Binding SelectedViewIndex, Converter={StaticResource IndexToVisibilityConverter}, ConverterParameter=0}"
+                              HorizontalAlignment="Stretch"
+                              VerticalAlignment="Stretch">
                             <TextBox Text="{Binding LogText, Mode=OneWay}"
                                      IsReadOnly="True"
                                      FontFamily="Consolas"
                                      FontSize="12"
+                                     HorizontalAlignment="Stretch"
+                                     VerticalAlignment="Stretch"
                                      VerticalScrollBarVisibility="Auto"
                                      HorizontalScrollBarVisibility="Auto"
                                      Background="Transparent"
