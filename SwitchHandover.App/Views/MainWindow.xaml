@@ -27,7 +27,7 @@
         <Grid Grid.Row="0">
             <ui:TitleBar Title="{Binding ApplicationTitle}" CloseWindowByDoubleClickOnIcon="True">
                 <ui:TitleBar.Icon>
-                    <Image Source="pack://application:,,,/Assets/app.png" Width="20" Height="20" Margin="8,0,4,0"/>
+                    <ui:ImageIcon Source="pack://application:,,,/Assets/app_64.png" />
                 </ui:TitleBar.Icon>
                 <ui:TitleBar.TrailingContent>
                     <!-- Robust theme toggle button that looks great in both Dark and Light mode -->
