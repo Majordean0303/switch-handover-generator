@@ -102,60 +102,185 @@
                 <RowDefinition Height="Auto" /> <!-- Export Toolbar -->
             </Grid.RowDefinitions>
 
-            <!-- 1. Parameter Cards Row -->
-            <ui:Card Grid.Row="0" Margin="0,0,0,14" Padding="18">
-                <Grid>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="2*" />
-                        <ColumnDefinition Width="1.5*" />
-                        <ColumnDefinition Width="1.5*" />
-                        <ColumnDefinition Width="Auto" />
-                    </Grid.ColumnDefinitions>
-
-                    <!-- Site Location -->
-                    <StackPanel Grid.Column="0" Margin="0,0,16,0">
-                        <TextBlock Text="SITE LOCATION *" FontWeight="SemiBold" FontSize="11" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,0,0,6"/>
-                        <ui:TextBox Text="{Binding SiteLocation, UpdateSourceTrigger=PropertyChanged}"
-                                    PlaceholderText="e.g. Mumbai, DataCenter 1"
-                                    Icon="{ui:SymbolIcon Location24}"/>
+            <!-- 1. Input Mode & Parameter Cards -->
+            <StackPanel Grid.Row="0" Margin="0,0,0,14">
+                <!-- Mode Selector Pill Bar -->
+                <Border HorizontalAlignment="Center"
+                        Background="{DynamicResource SubtleFillColorSecondaryBrush}"
+                        BorderBrush="{DynamicResource SurfaceStrokeColorDefaultBrush}"
+                        BorderThickness="1"
+                        CornerRadius="10"
+                        Padding="4"
+                        Margin="0,0,0,10">
+                    <StackPanel Orientation="Horizontal">
+                        <RadioButton GroupName="InputModes" Content="📁 Offline Configuration Logs"
+                                     IsChecked="{Binding InputModeIndex, Converter={StaticResource IndexToBoolConverter}, ConverterParameter=0}"
+                                     Style="{StaticResource PillRadioStyle}"/>
+                        <RadioButton GroupName="InputModes" Content="⚡ Live Discovery (SSH &amp; CDP)"
+                                     IsChecked="{Binding InputModeIndex, Converter={StaticResource IndexToBoolConverter}, ConverterParameter=1}"
+                                     Style="{StaticResource PillRadioStyle}"/>
                     </StackPanel>
+                </Border>
 
-                    <!-- Mgmt VLAN -->
-                    <StackPanel Grid.Column="1" Margin="0,0,16,0">
-                        <TextBlock Text="MANAGEMENT VLAN" FontWeight="SemiBold" FontSize="11" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,0,0,6"/>
-                        <ui:TextBox Text="{Binding MgmtVlan, UpdateSourceTrigger=PropertyChanged}"
-                                    PlaceholderText="Optional (e.g. 100)"
-                                    Icon="{ui:SymbolIcon NetworkCheck24}"/>
-                    </StackPanel>
+                <!-- Parameter Card: Mode 0 = Offline Files -->
+                <ui:Card Padding="18"
+                         Visibility="{Binding InputModeIndex, Converter={StaticResource IndexToVisibilityConverter}, ConverterParameter=0}">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="2*" />
+                            <ColumnDefinition Width="1.5*" />
+                            <ColumnDefinition Width="1.5*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
 
-                    <!-- Location Type -->
-                    <StackPanel Grid.Column="2" Margin="0,0,16,0">
-                        <TextBlock Text="LOCATION TYPE" FontWeight="SemiBold" FontSize="11" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,0,0,6"/>
-                        <ComboBox ItemsSource="{Binding LocationTypes}"
-                                  SelectedItem="{Binding LocationType}"
-                                  Height="36"
-                                  VerticalAlignment="Center"/>
-                    </StackPanel>
-
-                    <!-- Browse Files -->
-                    <StackPanel Grid.Column="3" VerticalAlignment="Center">
-                        <TextBlock Text="CONFIG / LOG FILES" FontWeight="SemiBold" FontSize="11" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,0,0,6"/>
-                        <StackPanel Orientation="Horizontal">
-                            <ui:Button Command="{Binding BrowseFilesCommand}"
-                                       Appearance="Secondary"
-                                       Height="36"
-                                       Padding="16,0"
-                                       Icon="{ui:SymbolIcon FolderOpen24}"
-                                       Content="Browse Files" />
-                            <TextBlock Text="{Binding SelectedFilesSummary}"
-                                       VerticalAlignment="Center"
-                                       Margin="12,0,0,0"
-                                       FontSize="12"
-                                       Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                        <!-- Site Location -->
+                        <StackPanel Grid.Column="0" Margin="0,0,16,0">
+                            <TextBlock Text="SITE LOCATION *" FontWeight="SemiBold" FontSize="11" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,0,0,6"/>
+                            <ui:TextBox Text="{Binding SiteLocation, UpdateSourceTrigger=PropertyChanged}"
+                                        PlaceholderText="e.g. Mumbai, DataCenter 1"
+                                        Icon="{ui:SymbolIcon Location24}"/>
                         </StackPanel>
-                    </StackPanel>
-                </Grid>
-            </ui:Card>
+
+                        <!-- Mgmt VLAN -->
+                        <StackPanel Grid.Column="1" Margin="0,0,16,0">
+                            <TextBlock Text="MANAGEMENT VLAN" FontWeight="SemiBold" FontSize="11" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,0,0,6"/>
+                            <ui:TextBox Text="{Binding MgmtVlan, UpdateSourceTrigger=PropertyChanged}"
+                                        PlaceholderText="Optional (e.g. 100)"
+                                        Icon="{ui:SymbolIcon NetworkCheck24}"/>
+                        </StackPanel>
+
+                        <!-- Location Type -->
+                        <StackPanel Grid.Column="2" Margin="0,0,16,0">
+                            <TextBlock Text="LOCATION TYPE" FontWeight="SemiBold" FontSize="11" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,0,0,6"/>
+                            <ComboBox ItemsSource="{Binding LocationTypes}"
+                                      SelectedItem="{Binding LocationType}"
+                                      Height="36"
+                                      VerticalAlignment="Center"/>
+                        </StackPanel>
+
+                        <!-- Browse Files -->
+                        <StackPanel Grid.Column="3" VerticalAlignment="Center">
+                            <TextBlock Text="CONFIG / LOG FILES" FontWeight="SemiBold" FontSize="11" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,0,0,6"/>
+                            <StackPanel Orientation="Horizontal">
+                                <ui:Button Command="{Binding BrowseFilesCommand}"
+                                           Appearance="Secondary"
+                                           Height="36"
+                                           Padding="16,0"
+                                           Icon="{ui:SymbolIcon FolderOpen24}"
+                                           Content="Browse Files" />
+                                <TextBlock Text="{Binding SelectedFilesSummary}"
+                                           VerticalAlignment="Center"
+                                           Margin="12,0,0,0"
+                                           FontSize="12"
+                                           Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                            </StackPanel>
+                        </StackPanel>
+                    </Grid>
+                </ui:Card>
+
+                <!-- Parameter Card: Mode 1 = Live Discovery (SSH & CDP) -->
+                <ui:Card Padding="18"
+                         Visibility="{Binding InputModeIndex, Converter={StaticResource IndexToVisibilityConverter}, ConverterParameter=1}">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+
+                        <!-- Live Row 1: Site Metadata -->
+                        <Grid Grid.Row="0" Margin="0,0,0,12">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="2*"/>
+                                <ColumnDefinition Width="1.5*"/>
+                                <ColumnDefinition Width="1.5*"/>
+                            </Grid.ColumnDefinitions>
+
+                            <StackPanel Grid.Column="0" Margin="0,0,16,0">
+                                <TextBlock Text="SITE LOCATION *" FontWeight="SemiBold" FontSize="11" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,0,0,6"/>
+                                <ui:TextBox Text="{Binding SiteLocation, UpdateSourceTrigger=PropertyChanged}"
+                                            PlaceholderText="e.g. Mumbai, DataCenter 1"
+                                            Icon="{ui:SymbolIcon Location24}"/>
+                            </StackPanel>
+
+                            <StackPanel Grid.Column="1" Margin="0,0,16,0">
+                                <TextBlock Text="MANAGEMENT VLAN" FontWeight="SemiBold" FontSize="11" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,0,0,6"/>
+                                <ui:TextBox Text="{Binding MgmtVlan, UpdateSourceTrigger=PropertyChanged}"
+                                            PlaceholderText="Optional (e.g. 100)"
+                                            Icon="{ui:SymbolIcon NetworkCheck24}"/>
+                            </StackPanel>
+
+                            <StackPanel Grid.Column="2">
+                                <TextBlock Text="LOCATION TYPE" FontWeight="SemiBold" FontSize="11" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,0,0,6"/>
+                                <ComboBox ItemsSource="{Binding LocationTypes}"
+                                          SelectedItem="{Binding LocationType}"
+                                          Height="36"
+                                          VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Grid>
+
+                        <!-- Live Row 2: Target IPs & Credentials -->
+                        <Grid Grid.Row="1" Margin="0,0,0,12">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="2*"/>
+                                <ColumnDefinition Width="1.2*"/>
+                                <ColumnDefinition Width="1.2*"/>
+                                <ColumnDefinition Width="1.2*"/>
+                            </Grid.ColumnDefinitions>
+
+                            <StackPanel Grid.Column="0" Margin="0,0,16,0">
+                                <DockPanel LastChildFill="False" Margin="0,0,0,6">
+                                    <TextBlock DockPanel.Dock="Left" Text="TARGET SEED IP(S) *" FontWeight="SemiBold" FontSize="11" Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                                    <ui:Button DockPanel.Dock="Right" Command="{Binding ImportSeedIpsCommand}"
+                                               Appearance="Transparent" Padding="4,0" FontSize="11" Content="Import File..."/>
+                                </DockPanel>
+                                <ui:TextBox Text="{Binding TargetIps, UpdateSourceTrigger=PropertyChanged}"
+                                            PlaceholderText="e.g. 10.1.1.1, 10.1.1.2 or 10.10.0.1"
+                                            Icon="{ui:SymbolIcon Router24}"/>
+                            </StackPanel>
+
+                            <StackPanel Grid.Column="1" Margin="0,0,16,0">
+                                <TextBlock Text="SSH USERNAME *" FontWeight="SemiBold" FontSize="11" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,0,0,6"/>
+                                <ui:TextBox Text="{Binding SshUsername, UpdateSourceTrigger=PropertyChanged}"
+                                            PlaceholderText="admin / cisco"
+                                            Icon="{ui:SymbolIcon Person24}"/>
+                            </StackPanel>
+
+                            <StackPanel Grid.Column="2" Margin="0,0,16,0">
+                                <TextBlock Text="SSH PASSWORD *" FontWeight="SemiBold" FontSize="11" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,0,0,6"/>
+                                <ui:PasswordBox Password="{Binding SshPassword, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                PlaceholderText="Password"/>
+                            </StackPanel>
+
+                            <StackPanel Grid.Column="3">
+                                <TextBlock Text="ENABLE SECRET" FontWeight="SemiBold" FontSize="11" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,0,0,6"/>
+                                <ui:PasswordBox Password="{Binding SshSecret, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                PlaceholderText="Optional Secret"/>
+                            </StackPanel>
+                        </Grid>
+
+                        <!-- Live Row 3: Discovery Tuning -->
+                        <Grid Grid.Row="2">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+
+                            <CheckBox Grid.Column="0" Content="Recursive CDP / LLDP Neighbor Crawl"
+                                      IsChecked="{Binding EnableCdp}" Margin="0,0,24,0"/>
+                            <CheckBox Grid.Column="1" Content="Include Discovered Cisco Access Points"
+                                      IsChecked="{Binding IncludeAps}"
+                                      IsEnabled="{Binding EnableCdp}" Margin="0,0,24,0"/>
+                            <StackPanel Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Right">
+                                <TextBlock Text="Subnet Filter (Optional):" VerticalAlignment="Center" FontSize="11" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,0,8,0"/>
+                                <ui:TextBox Text="{Binding SubnetFilter, UpdateSourceTrigger=PropertyChanged}"
+                                            PlaceholderText="e.g. 10.1.0.0/16" Width="140" Height="30"/>
+                            </StackPanel>
+                        </Grid>
+                    </Grid>
+                </ui:Card>
+            </StackPanel>
 
             <!-- 2. Options and Action Row -->
             <Grid Grid.Row="1" Margin="0,0,0,16">
@@ -226,7 +351,6 @@
                                 <Grid.RowDefinitions>
                                     <RowDefinition Height="Auto"/>
                                     <RowDefinition Height="*"/>
-                                    <RowDefinition Height="Auto"/>
                                 </Grid.RowDefinitions>
 
                                 <!-- Top Hero / Status Section -->
@@ -381,43 +505,6 @@
                                     </Border>
                                 </Grid>
 
-                                <!-- Quick Workflow Ribbon -->
-                                <Border Grid.Row="2"
-                                        Background="{DynamicResource SubtleFillColorSecondaryBrush}"
-                                        BorderBrush="{DynamicResource SurfaceStrokeColorDefaultBrush}"
-                                        BorderThickness="1"
-                                        CornerRadius="8"
-                                        Padding="16,12"
-                                        HorizontalAlignment="Stretch">
-                                    <Grid>
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="*"/>
-                                            <ColumnDefinition Width="Auto"/>
-                                            <ColumnDefinition Width="*"/>
-                                            <ColumnDefinition Width="Auto"/>
-                                            <ColumnDefinition Width="*"/>
-                                        </Grid.ColumnDefinitions>
-
-                                        <StackPanel Grid.Column="0" HorizontalAlignment="Center">
-                                            <TextBlock Text="1. CONFIGURE SITE &amp; LOGS" FontSize="10" FontWeight="Bold" Foreground="{DynamicResource AccentFillColorDefaultBrush}" HorizontalAlignment="Center"/>
-                                            <TextBlock Text="Enter site name &amp; select CLI outputs" FontSize="11" Foreground="{DynamicResource TextFillColorTertiaryBrush}" HorizontalAlignment="Center"/>
-                                        </StackPanel>
-
-                                        <ui:SymbolIcon Grid.Column="1" Symbol="ArrowRight16" FontSize="12" Foreground="{DynamicResource TextFillColorTertiaryBrush}" VerticalAlignment="Center"/>
-
-                                        <StackPanel Grid.Column="2" HorizontalAlignment="Center">
-                                            <TextBlock Text="2. AUTOMATED AUDIT" FontSize="10" FontWeight="Bold" Foreground="{DynamicResource AccentFillColorDefaultBrush}" HorizontalAlignment="Center"/>
-                                            <TextBlock Text="Run parsing across all switches &amp; APs" FontSize="11" Foreground="{DynamicResource TextFillColorTertiaryBrush}" HorizontalAlignment="Center"/>
-                                        </StackPanel>
-
-                                        <ui:SymbolIcon Grid.Column="3" Symbol="ArrowRight16" FontSize="12" Foreground="{DynamicResource TextFillColorTertiaryBrush}" VerticalAlignment="Center"/>
-
-                                        <StackPanel Grid.Column="4" HorizontalAlignment="Center">
-                                            <TextBlock Text="3. EXPORT DELIVERABLES" FontSize="10" FontWeight="Bold" Foreground="{DynamicResource AccentFillColorDefaultBrush}" HorizontalAlignment="Center"/>
-                                            <TextBlock Text="Multi-sheet Excel workbook &amp; CSV files" FontSize="11" Foreground="{DynamicResource TextFillColorTertiaryBrush}" HorizontalAlignment="Center"/>
-                                        </StackPanel>
-                                    </Grid>
-                                </Border>
                             </Grid>
                         </Grid>
 
@@ -551,7 +638,7 @@
                                    Command="{Binding ExportExcelCommand}"
                                    CommandParameter="both"
                                    IsEnabled="{Binding HasResults}"
-                                   Appearance="Primary"
+                                   Appearance="Secondary"
                                    Height="36"
                                    Margin="0,0,8,0"
                                    HorizontalAlignment="Stretch"

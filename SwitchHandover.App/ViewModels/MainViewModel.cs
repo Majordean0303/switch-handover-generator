@@ -29,6 +29,19 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty] private string _locationType = "Branch";
     [ObservableProperty] private ObservableCollection<string> _locationTypes = ["Branch", "DC", "DR", "Vendor"];
 
+    // Input mode selector: 0 = Offline Logs / Files, 1 = Live Network Discovery (SSH & CDP)
+    [ObservableProperty] private int _inputModeIndex;
+
+    // Live Discovery Settings
+    [ObservableProperty] private string _targetIps = "";
+    [ObservableProperty] private string _sshUsername = "";
+    [ObservableProperty] private string _sshPassword = "";
+    [ObservableProperty] private string _sshSecret = "";
+    [ObservableProperty] private bool _enableCdp = true;
+    [ObservableProperty] private bool _includeAps = true;
+    [ObservableProperty] private string _subnetFilter = "";
+    [ObservableProperty] private int _maxConcurrency = 5;
+
     [ObservableProperty] private bool _getSfps;
     [ObservableProperty] private bool _getCompletePortConfig;
 
@@ -96,6 +109,30 @@ public partial class MainViewModel : ObservableObject
         }
     }
 
+    [RelayCommand]
+    private void ImportSeedIps()
+    {
+        var dialog = new OpenFileDialog
+        {
+            Title = "Import Target Seed IPs",
+            Filter = "Text Files (*.txt)|*.txt|All Files (*.*)|*.*"
+        };
+
+        if (dialog.ShowDialog() == true)
+        {
+            try
+            {
+                string content = File.ReadAllText(dialog.FileName);
+                TargetIps = content;
+                AppendLog($"Imported seed IP list from {Path.GetFileName(dialog.FileName)}.");
+            }
+            catch (Exception ex)
+            {
+                _snackbarService.Show("Import Failed", ex.Message, ControlAppearance.Danger, new SymbolIcon(SymbolRegular.ErrorCircle24), TimeSpan.FromSeconds(3));
+            }
+        }
+    }
+
     private void AppendLog(string message)
     {
         string timestamp = DateTime.Now.ToString("HH:mm:ss");
@@ -105,28 +142,103 @@ public partial class MainViewModel : ObservableObject
     [RelayCommand]
     private async Task GenerateAsync()
     {
-        if (_selectedFiles.Count == 0)
-        {
-            _snackbarService.Show("No Files Selected", "Please select at least one configuration file.", ControlAppearance.Caution, new SymbolIcon(SymbolRegular.Warning24), TimeSpan.FromSeconds(3));
-            return;
-        }
-
         if (string.IsNullOrWhiteSpace(SiteLocation))
         {
             _snackbarService.Show("Location Required", "Please specify a Site Location (e.g. Mumbai, DC-1).", ControlAppearance.Caution, new SymbolIcon(SymbolRegular.Warning24), TimeSpan.FromSeconds(3));
             return;
         }
 
+        List<string> filesToProcess = [];
+
+        if (InputModeIndex == 1)
+        {
+            // LIVE DISCOVERY MODE
+            var rawIps = TargetIps.Split(new[] { '\r', '\n', ',', ';', ' ' }, StringSplitOptions.RemoveEmptyEntries)
+                                  .Select(ip => ip.Trim())
+                                  .Where(ip => !string.IsNullOrWhiteSpace(ip))
+                                  .Distinct(StringComparer.OrdinalIgnoreCase)
+                                  .ToList();
+
+            if (rawIps.Count == 0)
+            {
+                _snackbarService.Show("Target IP Required", "Please provide at least one seed switch IP address.", ControlAppearance.Caution, new SymbolIcon(SymbolRegular.Warning24), TimeSpan.FromSeconds(3));
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(SshUsername))
+            {
+                _snackbarService.Show("SSH Username Required", "Please enter the SSH username.", ControlAppearance.Caution, new SymbolIcon(SymbolRegular.Warning24), TimeSpan.FromSeconds(3));
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(SshPassword))
+            {
+                _snackbarService.Show("SSH Password Required", "Please enter the SSH password.", ControlAppearance.Caution, new SymbolIcon(SymbolRegular.Warning24), TimeSpan.FromSeconds(3));
+                return;
+            }
+
+            IsProcessing = true;
+            StatusMessage = "Starting live network discovery...";
+            AppendLog($"Initiating Live Network Discovery on {rawIps.Count} seed IP(s) (CDP Crawl: {EnableCdp}, AP Discovery: {IncludeAps})...");
+
+            string tempCaptureDir = Path.Combine(Path.GetTempPath(), "SwitchHandover", $"LiveCapture_{DateTime.Now:yyyyMMdd_HHmmss}");
+            var liveEngine = new LiveDiscoveryEngine();
+
+            try
+            {
+                var capturedFiles = await liveEngine.RunLiveCaptureAsync(
+                    rawIps,
+                    new LiveCredential { Username = SshUsername.Trim(), Password = SshPassword, Secret = SshSecret?.Trim() ?? "" },
+                    EnableCdp,
+                    IncludeAps,
+                    SubnetFilter?.Trim() ?? "",
+                    MaxConcurrency,
+                    tempCaptureDir,
+                    (cat, msg) => AppendLog($"[{cat}] {msg}"),
+                    (ip, pct, status) => StatusMessage = $"{ip}: {status} ({pct}%)",
+                    CancellationToken.None);
+
+                filesToProcess = capturedFiles;
+
+                if (filesToProcess.Count == 0)
+                {
+                    IsProcessing = false;
+                    StatusMessage = "No devices could be captured.";
+                    _snackbarService.Show("Live Discovery Incomplete", "No devices could be successfully reached or authenticated via SSH.", ControlAppearance.Caution, new SymbolIcon(SymbolRegular.Warning24), TimeSpan.FromSeconds(4));
+                    return;
+                }
+
+                AppendLog($"Live capture succeeded! Processing {filesToProcess.Count} live device output(s)...");
+            }
+            catch (Exception ex)
+            {
+                IsProcessing = false;
+                StatusMessage = $"Live discovery failed: {ex.Message}";
+                AppendLog($"[Error] Live discovery failed: {ex.Message}");
+                _snackbarService.Show("Discovery Error", ex.Message, ControlAppearance.Danger, new SymbolIcon(SymbolRegular.ErrorCircle24), TimeSpan.FromSeconds(4));
+                return;
+            }
+        }
+        else
+        {
+            // OFFLINE FILE MODE
+            if (_selectedFiles.Count == 0)
+            {
+                _snackbarService.Show("No Files Selected", "Please select at least one configuration file.", ControlAppearance.Caution, new SymbolIcon(SymbolRegular.Warning24), TimeSpan.FromSeconds(3));
+                return;
+            }
+            filesToProcess = _selectedFiles.ToList();
+        }
+
         IsProcessing = true;
         StatusMessage = "Analyzing files...";
-        AppendLog($"Starting handover analysis for location '{SiteLocation}'...");
+        AppendLog($"Starting handover analysis for location '{SiteLocation}' across {filesToProcess.Count} device log(s)...");
 
         string loc = SiteLocation.Trim();
         string locType = LocationType;
         string? vlan = string.IsNullOrWhiteSpace(MgmtVlan) ? null : MgmtVlan.Trim();
         bool sfps = GetSfps;
         bool allPorts = GetCompletePortConfig;
-        var filesToProcess = _selectedFiles.ToList();
 
         try
         {
