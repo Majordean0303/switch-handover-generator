@@ -1,15 +1,24 @@
-# .NET build artifacts
+# .NET build & user artifacts
 bin/
 obj/
-dist-csharp/
 *.user
 *.suo
 *.userosscache
 *.sln.docstates
+.vs/
 
-# Python artifacts
+# Packaging & Distribution output
+dist-csharp/
+dist/
+build/
+
+# Operating System & Editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Legacy Python
 __pycache__/
 *.py[cod]
-build/
-dist/
 *.spec

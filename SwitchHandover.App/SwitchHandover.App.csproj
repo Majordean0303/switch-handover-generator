@@ -20,6 +20,11 @@
     <ApplicationIcon>Assets\app.ico</ApplicationIcon>
     <IncludeAllContentForSelfExtract>true</IncludeAllContentForSelfExtract>
     <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
+    <Authors>Yash Nalawde (MajorDean0303)</Authors>
+    <Company>M s Conventus Technologies Pvt. Ltd</Company>
+    <Product>Switch Handover Generator</Product>
+    <Description>Automated Cisco switch &amp; access point configuration parser, live discovery engine, and handover matrix report generator.</Description>
+    <Version>2.0.0</Version>
   </PropertyGroup>
 
   <ItemGroup>

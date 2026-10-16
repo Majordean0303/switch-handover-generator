@@ -1,99 +1,120 @@
-```markdown
 # Switch Handover Generator 🚀
 
-An automated Python and Flask-based internal tool designed to eliminate the manual, tedious process of creating network handover documentation. 
+[![.NET 8](https://img.shields.io/badge/.NET-8.0-blue.svg)](https://dotnet.microsoft.com/download/dotnet/8.0)
+[![Platform](https://img.shields.io/badge/Platform-Windows%2010%2F11-lightgrey.svg)](https://microsoft.com/windows)
+[![UI](https://img.shields.io/badge/UI-WPF%20Mica%20Fluent-cyan.svg)](https://github.com/lepoco/wpfui)
 
-This tool parses raw Cisco CLI logs (specifically Catalyst 9200/9300 series) and intelligently extracts hardware inventory, stack member details, physical port counts, and CDP-based topology mappings to generate a clean, client-ready Excel Handover Matrix.
+An enterprise-grade network engineering application built in **C# (.NET 8)** with **WPF-UI (Windows 11 Mica Fluent Design)**. **Switch Handover Generator** automates the tedious process of parsing Cisco switch configurations and live network topologies to produce client-ready handover reports in Excel (`.xlsx`) and CSV formats.
 
-## ✨ Key Features
+---
 
-* **Smart Stack Detection:** Automatically navigates Cisco's interleaved `show version` logs to extract correct MAC addresses, Serial Numbers, and Models for *every individual switch* within a stack (dynamically handling model-specific CLI inconsistencies).
-* **Automated Topology Mapping:** Parses `show cdp neighbors` to map local interfaces to neighbor hostnames, IP addresses, and remote ports.
-* **Physical Port Counting:** Uses strict regex to count true physical hardware interfaces, filtering out virtual interfaces (VLANs, Port-channels, App-hosting).
-* **L2 / L3 Context:** Automatically identifies Core (L3) vs. Access (L2) switches based on routing configurations.
-* **Deep Interface Context:** Extracts port descriptions, VLAN assignments, and Trunk/Access modes directly from the running config.
-* **Power Supply Health:** Scans environmental logs to report the exact number of *active/healthy* power supplies per stack member.
-* **Modern Web UI:** Built with Tailwind CSS featuring a drag-and-drop file uploader, dark mode, and an instant web-dashboard preview before downloading to Excel.
+## ✨ Key Capabilities
 
-## 🛠️ Tech Stack
+* **⚡ Live Network Discovery (SSH & CDP Crawl):**
+  * Connects to Cisco switches over SSH.
+  * Recursively crawls CDP / LLDP neighbors across multi-tier topologies.
+  * Automatically filters out VoIP phones and discovers Cisco Catalyst 9100 series Access Points.
+  * Supports optional subnet CIDR boundary filtering (e.g. `10.1.0.0/16`) to keep discovery strictly within site limits.
+* **📁 Offline Configuration Logs Parser:**
+  * Fast, parallelized offline processing of SecureCRT / PuTTY log files.
+  * Smart Stack Detection: Extracts stack member IDs, roles, individual MAC addresses, serial numbers, and models (Catalyst 9200, 9300, 3850 series).
+  * Layer 2 vs. Layer 3 Context: Identifies Core/Distribution vs. Access switches based on active IP routing configurations.
+  * Environmental & PSU Status: Scans operational logs to track healthy power supplies and hardware redundancy.
+* **🔍 Port & Topology Intelligence:**
+  * True physical port counting (excluding VLANs, Port-channels, and virtual interfaces).
+  * Complete CDP neighbor interface mapping (remote hostnames, remote ports, neighbor management IPs).
+  * Port operational states, VLAN assignments, access vs. 802.1Q trunking, speed, and duplex modes.
+* **💎 SFP Optics & Wireless AP Inventory:**
+  * Optical transceiver inventory (10G SFP+, 1G SFP) with PID, serial numbers, and In-Use vs. Plugged tracking.
+  * Dedicated Cisco Catalyst 9100 series Access Point configuration parser.
+* **📊 Multi-Sheet Excel & Granular CSV Export:**
+  * Generates formatted Excel (`.xlsx`) workbooks with auto-styled corporate headers, alternating row striping, and column auto-fitting.
+  * Instant one-click CSV exports for Switch Details, Port Mappings, SFP Inventory, and All Physical Ports configurations.
+* **🎨 Modern Windows 11 Fluent UI:**
+  * Native Mica backdrop support with instantaneous Light and Dark theme switching.
+  * Segmented pill navigation bar, interactive DataGrids, and progress dialog overlays.
 
-* **Backend:** Python 3.x, Flask
-* **Data Processing:** Pandas, Python `re` (Regular Expressions), `collections.Counter`
-* **Frontend:** HTML5, Tailwind CSS (via CDN), Jinja2 Templating
-* **Export:** `openpyxl` (for Excel `.xlsx` generation)
+---
 
-## 📦 Installation & Setup
+## 🛠️ Technology Stack
 
-1. **Clone the repository** (or download the source files):
-   ```bash
-   git clone [https://github.com/yourusername/switch-handover-generator.git](https://github.com/yourusername/switch-handover-generator.git)
-   cd switch-handover-generator
+* **Framework:** .NET 8 (Windows Desktop / WPF)
+* **UI & Styling:** [WPF-UI (lepoco)](https://github.com/lepoco/wpfui) — Modern Windows 11 Fluent Design & Mica backdrop
+* **Architecture:** MVVM pattern using [CommunityToolkit.Mvvm](https://github.com/CommunityToolkit/dotnet)
+* **SSH Networking:** [SSH.NET](https://github.com/sshnet/SSH.NET)
+* **Excel Reporting:** [ClosedXML](https://github.com/ClosedXML/ClosedXML)
+* **Testing:** xUnit testing suite (`SwitchHandover.Tests`)
 
-```
+---
 
-2. **Create a Virtual Environment (Optional but recommended):**
-```bash
-python -m venv venv
-source venv/bin/activate  # On Windows use: venv\Scripts\activate
+## 💻 Recommended Cisco CLI Commands
 
-```
+When capturing configuration logs via PuTTY or SecureCRT for offline analysis, ensure the session includes the following show commands:
 
-
-3. **Install Required Dependencies:**
-```bash
-pip install Flask pandas openpyxl werkzeug
-
-```
-
-
-4. **Run the Application:**
-```bash
-python app.py
-
-```
-
-
-5. **Access the Web UI:**
-Open your web browser and navigate to `http://127.0.0.1:5000`
-
-## 💻 Usage & Required CLI Commands
-
-To generate a **100% complete** handover matrix, the tool requires specific output from the switch.
-
-When pulling logs from SecureCRT or PuTTY, ensure you execute the following commands in order and save the output as a `.txt` or `.log` file:
-
-```
+```text
 terminal length 0
 show running-config
 show version
 show cdp neighbors
-show cdp neighbors det
-show ip int bri
-show env all      (or 'show inventory')
-
+show cdp neighbors detail
+show ip interface brief
+show environment all       (or 'show inventory')
+show interfaces status
+show interfaces transceiver
 ```
 
-### Workflow:
+---
 
-1. Open the Web UI.
-2. Fill in the generic site details (Location, Location Type, Management VLAN).
-3. **Drag & Drop** your `.txt` config files into the drop zone.
-4. Click **"Analyze & Generate"**.
-5. Review the parsed data on the web dashboard.
-6. Click **"Download Complete Handover"** to export your Excel workbook.
+## 🚀 Building & Running
 
-## 🗂️ Project Structure
+### Prerequisites
+* **Windows 10 / 11 (x64)**
+* [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0)
 
-* `app.py`: The main Flask routing engine and Pandas Excel-export logic.
-* `parser.py`: The core regex parsing engine (`SwitchHandoverParser` class) that reads the raw text and structures the dictionaries.
-* `templates/index.html`: The Jinja2/Tailwind HTML frontend.
+### 1. Build & Test via CLI
+```bash
+# Clone the repository
+git clone https://github.com/Majordean0303/switch-handover-generator.git
+cd switch-handover-generator
 
-## 🔮 Future Roadmap
+# Run test suite
+dotnet test SwitchHandover.Tests/SwitchHandover.Tests.csproj
 
-## 🤝 Contributing
-
-Contributions, issues, and feature requests are welcome! If you find a Cisco iOS output that breaks the current regex engine, please open an issue and include an anonymized snippet of the log.
-
+# Build solution
+dotnet build SwitchHandoverGenerator.sln
 ```
 
+### 2. Publish Standalone Single-File Executable
+```bash
+dotnet publish SwitchHandover.App/SwitchHandover.App.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -o dist-csharp
 ```
+The standalone executable will be generated at `dist-csharp\SwitchHandover.App.exe` (no separate .NET runtime installation required).
+
+---
+
+## 📂 Project Structure
+
+```text
+switch-handover-generator/
+├── SwitchHandoverGenerator.sln        # Main Visual Studio Solution
+├── SwitchHandover.App/                # WPF-UI Application
+│   ├── Assets/                        # Modern minimalist Windows 11 application icons
+│   ├── Converters/                    # WPF Value Converters
+│   ├── ViewModels/                    # MVVM ViewModels (MainViewModel)
+│   └── Views/                         # Fluent XAML views (MainWindow)
+├── SwitchHandover.Core/               # Core Engine Library
+│   ├── Models/                        # Data models (SwitchDetails, PortMapping, SfpInventory, etc.)
+│   ├── Parsers/                       # Regex log parsing engines (SwitchHandoverParser, APHandoverParser)
+│   └── Services/                      # ClosedXML Excel exporter & SSH.NET Live Discovery Engine
+├── SwitchHandover.Tests/              # xUnit Test Project
+├── dist-csharp/                       # Output folder for published standalone executable
+├── .gitignore                         # Git exclusion rules
+└── README.md                          # Project documentation
+```
+
+---
+
+## 👤 Author & Credits
+
+* **Author:** Yash Nalawde ([@Majordean0303](https://github.com/Majordean0303))
+* **Organization:** M s Conventus Technologies Pvt. Ltd
