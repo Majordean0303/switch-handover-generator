@@ -15,6 +15,7 @@
             <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
             <conv:IndexToBoolConverter x:Key="IndexToBoolConverter" />
             <conv:IndexToVisibilityConverter x:Key="IndexToVisibilityConverter" />
+            <conv:InverseBooleanToVisibilityConverter x:Key="InverseBooleanToVisibilityConverter" />
 
             <Style TargetType="{x:Type TextBlock}">
                 <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}"/>
@@ -54,7 +55,7 @@
                                     <Setter Property="FontWeight" Value="Bold"/>
                                 </Trigger>
                                 <Trigger Property="IsEnabled" Value="False">
-                                    <Setter Property="Opacity" Value="0.4"/>
+                                    <Setter Property="Opacity" Value="0.35"/>
                                     <Setter Property="Cursor" Value="Arrow"/>
                                 </Trigger>
                             </ControlTemplate.Triggers>

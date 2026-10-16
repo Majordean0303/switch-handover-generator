@@ -7,10 +7,11 @@
         xmlns:vm="clr-namespace:SwitchHandover.App.ViewModels"
         mc:Ignorable="d"
         Title="{Binding ApplicationTitle}"
-        Height="820" Width="1240"
-        MinHeight="650" MinWidth="950"
+        Height="840" Width="1260"
+        MinHeight="680" MinWidth="980"
         WindowStartupLocation="CenterScreen"
         ExtendsContentIntoTitleBar="True"
+        Icon="pack://application:,,,/Assets/app.ico"
         WindowBackdropType="Mica"
         Foreground="{DynamicResource TextFillColorPrimaryBrush}">
 
@@ -26,15 +27,16 @@
         <Grid Grid.Row="0">
             <ui:TitleBar Title="{Binding ApplicationTitle}" CloseWindowByDoubleClickOnIcon="True">
                 <ui:TitleBar.Icon>
-                    <ui:SymbolIcon Symbol="Router24" FontSize="18" Foreground="{DynamicResource AccentFillColorDefaultBrush}" Margin="8,0,4,0"/>
+                    <Image Source="pack://application:,,,/Assets/app.png" Width="20" Height="20" Margin="8,0,4,0"/>
                 </ui:TitleBar.Icon>
                 <ui:TitleBar.TrailingContent>
+                    <!-- Robust theme toggle button that looks great in both Dark and Light mode -->
                     <ui:Button Appearance="Secondary" 
                                BorderThickness="1"
                                BorderBrush="{DynamicResource SurfaceStrokeColorDefaultBrush}"
-                               Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+                               Background="{DynamicResource SubtleFillColorSecondaryBrush}"
                                CornerRadius="14"
-                               Height="28"
+                               Height="30"
                                Padding="12,0"
                                Cursor="Hand"
                                Margin="0,0,16,0"
@@ -48,7 +50,7 @@
                 </ui:TitleBar.TrailingContent>
             </ui:TitleBar>
 
-            <!-- Progress bar -->
+            <!-- Global Progressive Top Progress Bar -->
             <ProgressBar VerticalAlignment="Bottom" Height="3" IsIndeterminate="True"
                          Foreground="{DynamicResource AccentFillColorDefaultBrush}"
                          Background="Transparent" BorderThickness="0"
@@ -139,14 +141,14 @@
                 <ui:Button Grid.Column="1"
                            Command="{Binding GenerateCommand}"
                            Appearance="Primary"
-                           Height="40"
-                           Padding="24,0"
+                           Height="42"
+                           Padding="26,0"
                            Icon="{ui:SymbolIcon Play24}"
                            Content="ANALYZE &amp; GENERATE HANDOVER"
                            FontWeight="Bold"/>
             </Grid>
 
-            <!-- 3. Segmented Navigation Pill View & Content Area (No separate tabs required) -->
+            <!-- 3. Segmented Navigation Pill View & Content Area (Disabled until run) -->
             <Grid Grid.Row="2" Margin="0,0,0,14">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
@@ -154,6 +156,7 @@
                 </Grid.RowDefinitions>
 
                 <!-- Unified Segmented Pill Filter Bar -->
+                <!-- Enabled only when HasResults is true, or user can view Analysis Logs -->
                 <Border Grid.Row="0"
                         HorizontalAlignment="Left"
                         Background="{DynamicResource SubtleFillColorSecondaryBrush}"
@@ -164,16 +167,52 @@
                         Margin="0,0,0,12">
                     <StackPanel Orientation="Horizontal">
                         <RadioButton GroupName="Views" Content="Analysis Logs" IsChecked="{Binding SelectedViewIndex, Converter={StaticResource IndexToBoolConverter}, ConverterParameter=0}" Style="{StaticResource PillRadioStyle}"/>
-                        <RadioButton GroupName="Views" Content="Switch Details" IsChecked="{Binding SelectedViewIndex, Converter={StaticResource IndexToBoolConverter}, ConverterParameter=1}" Style="{StaticResource PillRadioStyle}"/>
-                        <RadioButton GroupName="Views" Content="Port Mappings" IsChecked="{Binding SelectedViewIndex, Converter={StaticResource IndexToBoolConverter}, ConverterParameter=2}" Style="{StaticResource PillRadioStyle}"/>
+                        <RadioButton GroupName="Views" Content="Switch Details" IsChecked="{Binding SelectedViewIndex, Converter={StaticResource IndexToBoolConverter}, ConverterParameter=1}" Style="{StaticResource PillRadioStyle}" IsEnabled="{Binding HasResults}"/>
+                        <RadioButton GroupName="Views" Content="Port Mappings" IsChecked="{Binding SelectedViewIndex, Converter={StaticResource IndexToBoolConverter}, ConverterParameter=2}" Style="{StaticResource PillRadioStyle}" IsEnabled="{Binding HasResults}"/>
                         <RadioButton GroupName="Views" Content="SFP Inventory" IsChecked="{Binding SelectedViewIndex, Converter={StaticResource IndexToBoolConverter}, ConverterParameter=3}" Style="{StaticResource PillRadioStyle}" IsEnabled="{Binding HasSfps}"/>
                         <RadioButton GroupName="Views" Content="All Ports Config" IsChecked="{Binding SelectedViewIndex, Converter={StaticResource IndexToBoolConverter}, ConverterParameter=4}" Style="{StaticResource PillRadioStyle}" IsEnabled="{Binding HasCompletePorts}"/>
                     </StackPanel>
                 </Border>
 
-                <!-- View Switcher -->
-                <ui:Card Grid.Row="1" Padding="10">
+                <!-- View Switcher Host Card -->
+                <ui:Card Grid.Row="1" Padding="12">
                     <Grid>
+                        <!-- ================= STANDBY GRAPHICS OVERLAY ================= -->
+                        <!-- Displayed before any analysis is run (HasResults == false and SelectedViewIndex != 0) -->
+                        <Grid Background="Transparent"
+                              Panel.ZIndex="10"
+                              Visibility="{Binding HasResults, Converter={StaticResource InverseBooleanToVisibilityConverter}}">
+                            <!-- Only show Standby graphics if not looking at Logs or if logs are empty -->
+                            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Margin="20">
+                                <Border Width="72" Height="72" CornerRadius="36"
+                                        Background="{DynamicResource SubtleFillColorTertiaryBrush}"
+                                        HorizontalAlignment="Center" Margin="0,0,0,16">
+                                    <ui:SymbolIcon Symbol="Router24" FontSize="36" Foreground="{DynamicResource AccentFillColorDefaultBrush}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </Border>
+                                <TextBlock Text="Standby — Ready for Analysis"
+                                           FontSize="20" FontWeight="Bold"
+                                           HorizontalAlignment="Center" Margin="0,0,0,8"
+                                           Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
+                                <TextBlock Text="Specify your Site Location and browse Cisco configuration logs above, then click 'Analyze &amp; Generate Handover'."
+                                           FontSize="13" Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                           HorizontalAlignment="Center" TextAlignment="Center" MaxWidth="500" Margin="0,0,0,16"/>
+                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                    <Border Background="{DynamicResource SubtleFillColorSecondaryBrush}" CornerRadius="6" Padding="10,6" Margin="4">
+                                        <TextBlock Text="✓ Multi-Member Switch Stacks" FontSize="11" Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                                    </Border>
+                                    <Border Background="{DynamicResource SubtleFillColorSecondaryBrush}" CornerRadius="6" Padding="10,6" Margin="4">
+                                        <TextBlock Text="✓ Optical SFP Transceivers" FontSize="11" Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                                    </Border>
+                                    <Border Background="{DynamicResource SubtleFillColorSecondaryBrush}" CornerRadius="6" Padding="10,6" Margin="4">
+                                        <TextBlock Text="✓ CDP Connected Neighbors" FontSize="11" Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                                    </Border>
+                                    <Border Background="{DynamicResource SubtleFillColorSecondaryBrush}" CornerRadius="6" Padding="10,6" Margin="4">
+                                        <TextBlock Text="✓ Cisco Access Points" FontSize="11" Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                                    </Border>
+                                </StackPanel>
+                            </StackPanel>
+                        </Grid>
+
                         <!-- View 0: Logs -->
                         <Grid Visibility="{Binding SelectedViewIndex, Converter={StaticResource IndexToVisibilityConverter}, ConverterParameter=0}">
                             <TextBox Text="{Binding LogText, Mode=OneWay}"
@@ -316,6 +355,42 @@
                            Content="Export Complete Handover (.xlsx)"
                            FontWeight="SemiBold"/>
             </Grid>
+        </Grid>
+
+        <!-- ================= MODAL LOADING SCREEN OVERLAY ================= -->
+        <!-- Visible when IsProcessing is true -->
+        <Grid Grid.Row="0" Grid.RowSpan="2"
+              Background="#B0000000"
+              Visibility="{Binding IsProcessing, Converter={StaticResource BooleanToVisibilityConverter}}"
+              Panel.ZIndex="1000">
+            <Border Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+                    BorderBrush="{DynamicResource SurfaceStrokeColorDefaultBrush}"
+                    BorderThickness="1"
+                    CornerRadius="14"
+                    Padding="32"
+                    MaxWidth="460"
+                    MaxHeight="260"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center">
+                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                    <ui:ProgressRing IsIndeterminate="True"
+                                     Width="56" Height="56"
+                                     Foreground="{DynamicResource AccentFillColorDefaultBrush}"
+                                     HorizontalAlignment="Center" Margin="0,0,0,20"/>
+                    <TextBlock Text="Parsing &amp; Analyzing Configurations..."
+                               FontSize="18" FontWeight="Bold"
+                               HorizontalAlignment="Center" Margin="0,0,0,8"
+                               Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
+                    <TextBlock Text="{Binding StatusMessage}"
+                               FontSize="13"
+                               Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                               HorizontalAlignment="Center" TextAlignment="Center"/>
+                    <TextBlock Text="Extracting switch stacks, transceivers, interfaces &amp; neighbor mappings"
+                               FontSize="11" FontStyle="Italic"
+                               Foreground="{DynamicResource TextFillColorTertiaryBrush}"
+                               HorizontalAlignment="Center" Margin="0,10,0,0"/>
+                </StackPanel>
+            </Border>
         </Grid>
 
         <!-- Notification host -->
