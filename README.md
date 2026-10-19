@@ -27,6 +27,13 @@ An enterprise-grade network engineering application built in **C# (.NET 8)** wit
 * **💎 SFP Optics & Wireless AP Inventory:**
   * Optical transceiver inventory (10G SFP+, 1G SFP) with PID, serial numbers, and In-Use vs. Plugged tracking.
   * Dedicated Cisco Catalyst 9100 series Access Point configuration parser.
+* **🗜️ Complete ZIP Archive Support (Input & Export):**
+  * Direct selection and parsing of `.zip` archives (e.g. from Bulk Switch Backup) without manual extraction.
+  * Real-time ZIP inspection: Displays internal configuration log counts before starting analysis.
+  * Automatic recursive extraction: Handles nested directory hierarchies inside archives seamlessly.
+  * Drag & Drop: Drop `.zip` archives, loose log files, or folders directly into the application window.
+  * One-Click Reports Bundle (.zip): Export Complete Handover Excel and all CSV reports packaged in a single ZIP.
+  * Captured Logs Backup (.zip): Instantly save raw show command logs from Live Discovery as a `.zip` archive.
 * **📊 Multi-Sheet Excel & Granular CSV Export:**
   * Generates formatted Excel (`.xlsx`) workbooks with auto-styled corporate headers, alternating row striping, and column auto-fitting.
   * Instant one-click CSV exports for Switch Details, Port Mappings, SFP Inventory, and All Physical Ports configurations.

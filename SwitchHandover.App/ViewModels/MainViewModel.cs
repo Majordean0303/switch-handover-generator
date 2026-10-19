@@ -60,6 +60,8 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty] private bool _hasResults;
     [ObservableProperty] private bool _hasSfps;
     [ObservableProperty] private bool _hasCompletePorts;
+    [ObservableProperty] private bool _hasLiveCapturedLogs;
+    private string? _lastLiveCaptureDir;
 
     // View selector: 0=Summary/Log, 1=Switch Details, 2=Port Mappings, 3=SFP Inventory, 4=Complete Port Config
     [ObservableProperty] private int _selectedViewIndex;
@@ -93,20 +95,84 @@ public partial class MainViewModel : ObservableObject
     {
         var dialog = new OpenFileDialog
         {
-            Title = "Select Cisco Config / Backup Logs",
-            Filter = "Text / Log Files (*.txt;*.log)|*.txt;*.log|All Files (*.*)|*.*",
+            Title = "Select Cisco Config Logs / ZIP Archives",
+            Filter = "Supported Logs & ZIP Archives (*.txt;*.log;*.cfg;*.zip)|*.txt;*.log;*.cfg;*.zip|ZIP Archives (*.zip)|*.zip|Text / Log Files (*.txt;*.log;*.cfg)|*.txt;*.log;*.cfg|All Files (*.*)|*.*",
             Multiselect = true
         };
 
         if (dialog.ShowDialog() == true)
         {
-            _selectedFiles.Clear();
-            _selectedFiles.AddRange(dialog.FileNames);
-
-            SelectedFilesSummary = $"{_selectedFiles.Count} file(s) selected";
-            HasSelectedFiles = _selectedFiles.Count > 0;
-            AppendLog($"Selected {_selectedFiles.Count} configuration file(s).");
+            ProcessSelectedFiles(dialog.FileNames);
         }
+    }
+
+    public void ProcessSelectedFiles(IEnumerable<string> paths)
+    {
+        _selectedFiles.Clear();
+        _selectedFiles.AddRange(paths.Where(p => File.Exists(p) || Directory.Exists(p)));
+
+        UpdateSelectedFilesSummary();
+    }
+
+    private void UpdateSelectedFilesSummary()
+    {
+        if (_selectedFiles.Count == 0)
+        {
+            SelectedFilesSummary = "No files selected";
+            HasSelectedFiles = false;
+            return;
+        }
+
+        int zipCount = 0;
+        int configInZipCount = 0;
+        int textFileCount = 0;
+
+        foreach (var path in _selectedFiles)
+        {
+            if (Directory.Exists(path))
+            {
+                var files = Directory.GetFiles(path, "*.*", SearchOption.AllDirectories);
+                foreach (var f in files)
+                {
+                    if (ZipArchiveService.IsZipFile(f))
+                    {
+                        zipCount++;
+                        configInZipCount += ZipArchiveService.CountConfigEntriesInZip(f);
+                    }
+                    else
+                    {
+                        textFileCount++;
+                    }
+                }
+            }
+            else if (ZipArchiveService.IsZipFile(path))
+            {
+                zipCount++;
+                configInZipCount += ZipArchiveService.CountConfigEntriesInZip(path);
+            }
+            else
+            {
+                textFileCount++;
+            }
+        }
+
+        if (zipCount > 0 && textFileCount == 0)
+        {
+            SelectedFilesSummary = zipCount == 1
+                ? $"1 ZIP archive ({configInZipCount} configs inside)"
+                : $"{zipCount} ZIP archives ({configInZipCount} configs inside)";
+        }
+        else if (zipCount > 0 && textFileCount > 0)
+        {
+            SelectedFilesSummary = $"{_selectedFiles.Count} items ({textFileCount} logs, {zipCount} ZIP with {configInZipCount} configs)";
+        }
+        else
+        {
+            SelectedFilesSummary = $"{_selectedFiles.Count} file(s) selected";
+        }
+
+        HasSelectedFiles = _selectedFiles.Count > 0;
+        AppendLog($"Loaded {_selectedFiles.Count} selected item(s): {SelectedFilesSummary}.");
     }
 
     [RelayCommand]
@@ -208,6 +274,9 @@ public partial class MainViewModel : ObservableObject
                     return;
                 }
 
+                _lastLiveCaptureDir = tempCaptureDir;
+                HasLiveCapturedLogs = Directory.Exists(_lastLiveCaptureDir) && Directory.GetFiles(_lastLiveCaptureDir, "*.txt").Length > 0;
+
                 AppendLog($"Live capture succeeded! Processing {filesToProcess.Count} live device output(s)...");
             }
             catch (Exception ex)
@@ -224,10 +293,26 @@ public partial class MainViewModel : ObservableObject
             // OFFLINE FILE MODE
             if (_selectedFiles.Count == 0)
             {
-                _snackbarService.Show("No Files Selected", "Please select at least one configuration file.", ControlAppearance.Caution, new SymbolIcon(SymbolRegular.Warning24), TimeSpan.FromSeconds(3));
+                _snackbarService.Show("No Files Selected", "Please select at least one configuration file or ZIP archive.", ControlAppearance.Caution, new SymbolIcon(SymbolRegular.Warning24), TimeSpan.FromSeconds(3));
                 return;
             }
-            filesToProcess = _selectedFiles.ToList();
+
+            IsProcessing = true;
+            StatusMessage = "Unpacking and resolving files...";
+
+            string tempExtractionDir = Path.Combine(Path.GetTempPath(), "SwitchHandover", $"ExtractedZips_{DateTime.Now:yyyyMMdd_HHmmss}");
+            filesToProcess = ZipArchiveService.ResolveAllFiles(
+                _selectedFiles,
+                tempExtractionDir,
+                (cat, msg) => AppendLog($"[{cat}] {msg}"));
+
+            if (filesToProcess.Count == 0)
+            {
+                IsProcessing = false;
+                StatusMessage = "No configuration logs found.";
+                _snackbarService.Show("No Configs Found", "The selected file(s) or ZIP archive(s) did not contain any readable switch configuration logs.", ControlAppearance.Caution, new SymbolIcon(SymbolRegular.Warning24), TimeSpan.FromSeconds(4));
+                return;
+            }
         }
 
         IsProcessing = true;
@@ -439,6 +524,120 @@ public partial class MainViewModel : ObservableObject
             catch (Exception ex)
             {
                 AppendLog($"✘ CSV Export failed: {ex.Message}");
+                _snackbarService.Show(
+                    "Export Error",
+                    ex.Message,
+                    ControlAppearance.Danger,
+                    new SymbolIcon(SymbolRegular.ErrorCircle24),
+                    TimeSpan.FromSeconds(5));
+            }
+        }
+    }
+
+    [RelayCommand]
+    private void ExportReportsZip()
+    {
+        if (!HasResults)
+        {
+            _snackbarService.Show("No Results", "Please run analysis first before exporting reports.", ControlAppearance.Caution, new SymbolIcon(SymbolRegular.Warning24), TimeSpan.FromSeconds(3));
+            return;
+        }
+
+        var dialog = new SaveFileDialog
+        {
+            Title = "Save Reports Bundle As ZIP",
+            Filter = "ZIP Archive (*.zip)|*.zip",
+            FileName = $"Handover_Reports_Bundle_{DateTime.Now:yyyyMMdd_HHmmss}.zip"
+        };
+
+        if (dialog.ShowDialog() == true)
+        {
+            string tempExcel = Path.Combine(Path.GetTempPath(), $"Complete_Handover_{Guid.NewGuid():N}.xlsx");
+            try
+            {
+                HandoverExcelExporter.ExportExcel(
+                    tempExcel,
+                    "both",
+                    SwitchDetails,
+                    PortMappings,
+                    SfpInventories,
+                    CompletePortConfigs);
+
+                var csvMap = new Dictionary<string, string>
+                {
+                    ["Switch_Details.csv"] = HandoverExcelExporter.GenerateCsvString("switches", SwitchDetails, PortMappings, SfpInventories, CompletePortConfigs),
+                    ["Port_Mapping.csv"] = HandoverExcelExporter.GenerateCsvString("ports", SwitchDetails, PortMappings, SfpInventories, CompletePortConfigs)
+                };
+
+                if (HasSfps)
+                {
+                    csvMap["SFP_Inventory.csv"] = HandoverExcelExporter.GenerateCsvString("sfp", SwitchDetails, PortMappings, SfpInventories, CompletePortConfigs);
+                }
+
+                if (HasCompletePorts)
+                {
+                    csvMap["Complete_Port_Config.csv"] = HandoverExcelExporter.GenerateCsvString("allports", SwitchDetails, PortMappings, SfpInventories, CompletePortConfigs);
+                }
+
+                ZipArchiveService.CreateReportsBundleZip(dialog.FileName, tempExcel, csvMap);
+
+                AppendLog($"✔ Exported Handover Reports Bundle ZIP to: {dialog.FileName}");
+                _snackbarService.Show(
+                    "ZIP Bundle Exported",
+                    $"Saved reports package to {Path.GetFileName(dialog.FileName)}",
+                    ControlAppearance.Success,
+                    new SymbolIcon(SymbolRegular.Checkmark24),
+                    TimeSpan.FromSeconds(4));
+            }
+            catch (Exception ex)
+            {
+                AppendLog($"✘ ZIP bundle export failed: {ex.Message}");
+                _snackbarService.Show(
+                    "Export Error",
+                    ex.Message,
+                    ControlAppearance.Danger,
+                    new SymbolIcon(SymbolRegular.ErrorCircle24),
+                    TimeSpan.FromSeconds(5));
+            }
+            finally
+            {
+                try { if (File.Exists(tempExcel)) File.Delete(tempExcel); } catch { }
+            }
+        }
+    }
+
+    [RelayCommand]
+    private void ExportCapturedLogsZip()
+    {
+        if (string.IsNullOrEmpty(_lastLiveCaptureDir) || !Directory.Exists(_lastLiveCaptureDir))
+        {
+            _snackbarService.Show("No Captured Logs", "No live captured switch log directory is available.", ControlAppearance.Caution, new SymbolIcon(SymbolRegular.Warning24), TimeSpan.FromSeconds(3));
+            return;
+        }
+
+        var dialog = new SaveFileDialog
+        {
+            Title = "Save Captured Switch Logs As ZIP",
+            Filter = "ZIP Archive (*.zip)|*.zip",
+            FileName = $"Switch_Backups_{DateTime.Now:yyyyMMdd_HHmmss}.zip"
+        };
+
+        if (dialog.ShowDialog() == true)
+        {
+            try
+            {
+                ZipArchiveService.CreateBackupsZip(_lastLiveCaptureDir, dialog.FileName);
+                AppendLog($"✔ Exported live captured logs ZIP to: {dialog.FileName}");
+                _snackbarService.Show(
+                    "Captured Logs ZIP Exported",
+                    $"Saved switch logs to {Path.GetFileName(dialog.FileName)}",
+                    ControlAppearance.Success,
+                    new SymbolIcon(SymbolRegular.Checkmark24),
+                    TimeSpan.FromSeconds(4));
+            }
+            catch (Exception ex)
+            {
+                AppendLog($"✘ Failed to export captured logs ZIP: {ex.Message}");
                 _snackbarService.Show(
                     "Export Error",
                     ex.Message,

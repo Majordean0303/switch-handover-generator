@@ -132,6 +132,17 @@ public static class HandoverExcelExporter
         IEnumerable<SfpInventory>? sfps = null,
         IEnumerable<PortMapping>? completePorts = null)
     {
+        string content = GenerateCsvString(csvType, switchDetails, portMappings, sfps, completePorts);
+        File.WriteAllText(filePath, content, Encoding.UTF8);
+    }
+
+    public static string GenerateCsvString(
+        string csvType,
+        IEnumerable<SwitchDetails> switchDetails,
+        IEnumerable<PortMapping> portMappings,
+        IEnumerable<SfpInventory>? sfps = null,
+        IEnumerable<PortMapping>? completePorts = null)
+    {
         var sb = new StringBuilder();
 
         switch (csvType)
@@ -191,7 +202,7 @@ public static class HandoverExcelExporter
                 break;
         }
 
-        File.WriteAllText(filePath, sb.ToString(), Encoding.UTF8);
+        return sb.ToString();
     }
 
     private static string CsvRow(params string[] values)
