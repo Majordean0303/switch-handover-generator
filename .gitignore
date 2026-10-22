@@ -22,3 +22,7 @@ Thumbs.db
 __pycache__/
 *.py[cod]
 *.spec
+
+**/bin/
+**/obj/
+artifacts/
