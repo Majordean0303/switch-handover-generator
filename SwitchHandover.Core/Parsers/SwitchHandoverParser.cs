@@ -337,6 +337,9 @@ public class SwitchHandoverParser
             }
         }
 
+        foreach(Match m in Regex.Matches(_logText,@"^(\S+)\s+.*?\s+(connected|notconnect|disabled|err-disabled)\s+\S+",RegexOptions.Multiline|RegexOptions.IgnoreCase))
+            if(ports.TryGetValue(NormalizeIntf(m.Groups[1].Value),out var currentPort))currentPort.State=m.Groups[2].Value.ToLowerInvariant()=="connected"?"up":"down";
+
         var cdpIpDict = ExtractCdpNeighborIps(_logText);
 
         var splitLines = _logText.Split('\n');
@@ -378,6 +381,21 @@ public class SwitchHandoverParser
                 }
             }
             prev = line.Trim();
+        }
+
+        // Live captures use detail output; retain the summary parser for old files.
+        foreach (var block in Regex.Split(_logText, @"Device ID:", RegexOptions.IgnoreCase).Skip(1))
+        {
+            var host = block.Split(['\r', '\n'])[0].Trim();
+            var local = Regex.Match(block, @"Interface:\s*([^,\r\n]+)", RegexOptions.IgnoreCase);
+            var remote = Regex.Match(block, @"Port ID \(outgoing port\):\s*([^\r\n]+)", RegexOptions.IgnoreCase);
+            var ip = Regex.Match(block, @"(?:IP|IPv4) address:\s*((?:\d{1,3}\.){3}\d{1,3})", RegexOptions.IgnoreCase);
+            if (local.Success && ports.TryGetValue(NormalizeIntf(local.Groups[1].Value.Trim()), out var port))
+            {
+                port.NeighbourHostname = host;
+                port.NeighbourPortNo = remote.Success ? remote.Groups[1].Value.Trim() : "-";
+                port.NeighbourDeviceIp = ip.Success ? ip.Groups[1].Value : "-";
+            }
         }
 
         if (returnAll)
