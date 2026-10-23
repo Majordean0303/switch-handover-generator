@@ -1,24 +1,3 @@
-# Switch Handover Generator — Avalonia migration
-
-The default `SwitchHandover.sln` runs .NET 10 Core/CLI/Avalonia projects. Prior WPF source and solution remain references. Desktop version remains 2.0.0; no release is published.
-
-```powershell
-pwsh scripts/test-all.ps1
-dotnet run --project SwitchHandover.Desktop
-dotnet run --project SwitchHandover.Cli -- --input SwitchHandover.Tests/Fixtures/access.txt --location Lab --excel artifacts/handover.xlsx --vsdx artifacts/topology.vsdx
-pwsh scripts/package.ps1 -Runtime win-x64
-```
-
-Import Cisco switch/AP logs, ZIP archives or folders; specify site/location type and optional management VLAN; review switch details, neighbor ports, SFP inventory and complete port configurations. Excel keeps its original sheet names/columns. Individual CSVs are available via CLI and all four report types in the report ZIP. The native UI also exports port CSV, workbook, report ZIP and Visio topology. Search filters the tables; exports contain the full analyzed evidence.
-
-Live capture requires an explicit action. It uses SSH-only sessions, 1–32 bounded workers, an explicit hop cap and a 512-device ceiling, with optional CDP traversal, AP inclusion and subnet filter. Phones/peripheral hosts are excluded. No automatic connections. Session credentials are not persisted. Completed captures remain in the selected output directory after cancellation and can be analyzed/exported separately. Raw configurations can contain device secrets; choose the output directory accordingly.
-
-The new topology tab uses the validated local Visio subset documented in [docs/TOPOLOGY_PROVENANCE.md](docs/TOPOLOGY_PROVENANCE.md). Drag nodes and export from that layout snapshot. Unobserved neighbors, ports and IPs are not fabricated; conflicting addresses produce notes. Stack rows remain separate in Excel but form one topology device. Existing core parsers are retained, with intentional fixes for detailed CDP output and standard interface-status states.
-
-Portable validation: 45 core checks, two Skia headless UI checks, CLI synthetic capture → XLSX/VSDX and Release builds. Tests use recorded/simulated evidence and do not contact equipment. Native OS visuals/local packages, actual Visio rendering and live Cisco SSH/AP command support remain manual review items.
-
----
-
 # Switch Handover Generator 🚀
 
 [![.NET 8](https://img.shields.io/badge/.NET-8.0-blue.svg)](https://dotnet.microsoft.com/download/dotnet/8.0)

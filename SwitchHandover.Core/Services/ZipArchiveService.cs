@@ -6,8 +6,6 @@ namespace SwitchHandover.Core.Services;
 /// <summary>
 /// Service for inspecting, extracting, and bundling ZIP archives containing Cisco configuration logs and handover reports.
 /// </summary>
-public sealed record ExtractionLimits(int MaxEntries=1000,long MaxEntryBytes=134217728,long MaxTotalBytes=536870912);
-
 public static class ZipArchiveService
 {
     private static readonly HashSet<string> ValidConfigExtensions = new(StringComparer.OrdinalIgnoreCase)
@@ -103,7 +101,7 @@ public static class ZipArchiveService
     /// Extracts all eligible configuration/log files from a ZIP archive into the destination directory.
     /// Preserves uniqueness across nested folder structures.
     /// </summary>
-    public static List<string> ExtractConfigsFromZip(string zipPath, string destinationDirectory, Action<string, string>? log = null, ExtractionLimits? limits = null, CancellationToken token = default)
+    public static List<string> ExtractConfigsFromZip(string zipPath, string destinationDirectory, Action<string, string>? log = null)
     {
         var extractedFiles = new List<string>();
         if (!File.Exists(zipPath))
@@ -115,13 +113,9 @@ public static class ZipArchiveService
         {
             using var archive = ZipFile.OpenRead(zipPath);
             int count = 0;
-            limits ??= new();
-            var eligible=archive.Entries.Where(IsValidConfigEntry).ToArray();
-            if(limits.MaxEntries<1||limits.MaxEntryBytes<1||limits.MaxTotalBytes<1||eligible.Length>limits.MaxEntries||eligible.Any(e=>e.Length>limits.MaxEntryBytes)||eligible.Sum(e=>e.Length)>limits.MaxTotalBytes)throw new InvalidDataException("Archive exceeds extraction limits.");
 
-            foreach (var entry in eligible)
+            foreach (var entry in archive.Entries)
             {
-                token.ThrowIfCancellationRequested();
                 if (!IsValidConfigEntry(entry))
                     continue;
 
@@ -152,9 +146,7 @@ public static class ZipArchiveService
         }
         catch (Exception ex)
         {
-            foreach(var extracted in extractedFiles)File.Delete(extracted);
             log?.Invoke("Error", $"Failed to extract ZIP '{Path.GetFileName(zipPath)}': {ex.Message}");
-            throw;
         }
 
         return extractedFiles;
