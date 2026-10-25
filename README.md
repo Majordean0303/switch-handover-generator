@@ -160,4 +160,3 @@ switch-handover-generator/
 ## 👤 Author & Credits
 
 * **Author:** Yash Nalawde ([@Majordean0303](https://github.com/Majordean0303))
-* **Organization:** M s Conventus Technologies Pvt. Ltd
