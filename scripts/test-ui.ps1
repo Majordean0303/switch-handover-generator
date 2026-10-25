@@ -28,7 +28,7 @@ try {
     }
     $phase = 'build'
     if (-not $NoBuild) {
-        & dotnet build $project -c $Configuration --no-restore --nologo *> (Join-Path $ResultsDirectory 'build.log')
+        & dotnet build $project -c $Configuration -m:1 --no-restore --nologo *> (Join-Path $ResultsDirectory 'build.log')
         if ($LASTEXITCODE -ne 0) { throw 'Core/test build failed.' }
     }
     $phase = 'test'

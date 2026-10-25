@@ -5,7 +5,7 @@ $root=Split-Path -Parent $PSScriptRoot
 if($LASTEXITCODE -ne 0){exit $LASTEXITCODE}
 foreach($project in @('SwitchHandover.Cli','SwitchHandover.Desktop')){
  $log=Join-Path $root "artifacts/$project-build.log"
- & dotnet build (Join-Path $root "$project/$project.csproj") -c $Configuration --nologo *> $log
+ & dotnet build (Join-Path $root "$project/$project.csproj") -c $Configuration -m:1 --nologo *> $log
  if($LASTEXITCODE -ne 0){Write-Host "Build FAILED: $project. Log: $log";exit 1}
  Write-Host "Build PASSED: $project"
 }
